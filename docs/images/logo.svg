@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 128" fill="none">
+  <!-- Brand Icon -->
+  <g transform="translate(16, 16)">
+    <rect width="96" height="96" rx="24" fill="#090d16" stroke="#1e293b" stroke-width="2" />
+    <circle cx="48" cy="48" r="40" stroke="#1e293b" stroke-width="2" stroke-dasharray="4 4" />
+    
+    <!-- Outer graph edges -->
+    <line x1="48" y1="24" x2="72" y2="40" stroke="#22c55e" stroke-width="2.5" stroke-opacity="0.7" />
+    <line x1="72" y1="40" x2="62" y2="70" stroke="#22c55e" stroke-width="2.5" stroke-opacity="0.7" />
+    <line x1="62" y1="70" x2="34" y2="70" stroke="#22c55e" stroke-width="2.5" stroke-opacity="0.7" />
+    <line x1="34" y1="70" x2="24" y2="40" stroke="#22c55e" stroke-width="2.5" stroke-opacity="0.7" />
+    <line x1="24" y1="40" x2="48" y2="24" stroke="#22c55e" stroke-width="2.5" stroke-opacity="0.7" />
+    
+    <!-- Centroid connections -->
+    <line x1="48" y1="48" x2="48" y2="24" stroke="#4ade80" stroke-width="3" />
+    <line x1="48" y1="48" x2="72" y2="40" stroke="#4ade80" stroke-width="3" />
+    <line x1="48" y1="48" x2="62" y2="70" stroke="#4ade80" stroke-width="3" />
+    <line x1="48" y1="48" x2="34" y2="70" stroke="#4ade80" stroke-width="3" />
+    <line x1="48" y1="48" x2="24" y2="40" stroke="#4ade80" stroke-width="3" />
+
+    <!-- Nodes -->
+    <circle cx="48" cy="24" r="5" fill="#10b981" />
+    <circle cx="72" cy="40" r="5" fill="#10b981" />
+    <circle cx="62" cy="70" r="5" fill="#10b981" />
+    <circle cx="34" cy="70" r="5" fill="#10b981" />
+    <circle cx="24" cy="40" r="5" fill="#10b981" />
+
+    <!-- Centroid Query Node -->
+    <circle cx="48" cy="48" r="9" fill="#22c55e" />
+    <circle cx="48" cy="48" r="5" fill="#ffffff" />
+  </g>
+
+  <!-- Typography -->
+  <text x="136" y="68" font-family="'Inter', -apple-system, sans-serif" font-weight="800" font-size="44" fill="#ffffff" letter-spacing="-0.03em">
+    VectorLite<tspan fill="#4ade80">.wasm</tspan>
+  </text>
+  <text x="138" y="96" font-family="'JetBrains Mono', monospace" font-weight="500" font-size="14" fill="#64748b" letter-spacing="0.05em">
+    IN-BROWSER VECTOR SEARCH &amp; SEMANTIC RETRIEVAL
+  </text>
+</svg>
