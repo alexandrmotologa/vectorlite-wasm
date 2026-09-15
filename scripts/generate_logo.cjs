@@ -1,4 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+const fs = require('fs');
+const path = require('path');
+
+function buildLogoSvg() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
   <defs>
     <clipPath id="squircle-clip">
       <rect x="24" y="24" width="976" height="976" rx="220" />
@@ -143,3 +147,10 @@
     </g>
   </g>
 </svg>
+`;
+}
+
+const svg = buildLogoSvg();
+const svgPath = path.resolve(__dirname, '../docs/images/logo.svg');
+fs.writeFileSync(svgPath, svg, 'utf-8');
+console.log('✓ Wrote perfected Peregrine Vector logo.svg');

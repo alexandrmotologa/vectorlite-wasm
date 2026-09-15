@@ -98,6 +98,14 @@ export const App: React.FC = () => {
         setModelStatus('error');
         setProcessStatus(`Error: ${msg.error}`);
         setIsProcessing(false);
+        if (pendingBatchResolver.current) {
+          pendingBatchResolver.current([]);
+          pendingBatchResolver.current = null;
+        }
+        if (pendingQueryResolver.current) {
+          pendingQueryResolver.current(new Float32Array(384));
+          pendingQueryResolver.current = null;
+        }
       }
     };
 

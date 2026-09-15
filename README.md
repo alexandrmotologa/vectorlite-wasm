@@ -1,11 +1,14 @@
-# VectorLite-Wasm
-
 <p align="center">
-  <img src="docs/images/logo.svg" alt="VectorLite-Wasm Logo" width="460" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/logo.svg">
+    <img src="docs/images/logo.png" alt="VectorLite-Wasm Logo" width="130" style="border-radius: 28px; box-shadow: 0 10px 30px -10px rgba(0,245,255,0.35);" />
+  </picture>
 </p>
 
+<h1 align="center">VectorLite-Wasm</h1>
+
 <p align="center">
-  <strong>Client-side vector search and semantic retrieval engine running entirely inside the browser via WebAssembly and Web Workers.</strong>
+  <strong>Client-side vector search and semantic retrieval engine running entirely inside the browser via WebAssembly, HNSW, and Web Workers.</strong>
 </p>
 
 <p align="center">
@@ -24,13 +27,22 @@ No document text or vector embeddings are transmitted to external servers.
 
 ---
 
-## Visual Overview
+## Interactive Demo
 
-### Semantic Search, Local Grounded RAG & 3D Orbital Cluster Map
-![VectorLite Studio & 2D Vector Cluster](docs/images/search-clusters.png)
+<p align="center">
+  <img src="docs/images/demo.gif" alt="VectorLite-Wasm Live Session" width="100%" style="border-radius: 12px; border: 1px solid #1e293b; box-shadow: 0 20px 40px -15px rgba(0,0,0,0.7);" />
+</p>
 
-### Performance & Micro-Benchmarks with Quantization Telemetry
-![In-Memory Benchmark Telemetry](docs/images/performance-benchmark.png)
+## Visual Studio & Architecture
+
+### Ingestion, Semantic Search & Local Grounded RAG
+![VectorLite Studio & Grounded RAG](docs/images/hero-studio.png)
+
+### 3D Orbital Vector Space Projection (Fast PCA)
+![Vector Space 3D Orbit Constellation](docs/images/search-clusters.png)
+
+### In-Memory Benchmarks & Quantization Telemetry (SQ8 & 1-Bit BQ)
+![Performance Telemetry and Quantization](docs/images/performance-benchmark.png)
 
 ---
 
