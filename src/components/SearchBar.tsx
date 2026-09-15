@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { Search, Sliders, Zap, Tag, Compass, Sparkles } from 'lucide-react';
+import { Search, Sliders, Zap, Tag, Compass, Sparkles, Filter } from 'lucide-react';
 
 export type SearchMode = 'hybrid' | 'dense' | 'sparse';
 
 interface SearchBarProps {
-  onSearch: (query: string, mode: SearchMode, topK: number) => void;
+  onSearch: (query: string, mode: SearchMode, topK: number, documentFilter?: string | null) => void;
   isSearching: boolean;
   queryLatencyMs: number | null;
   totalVectors: number;
+  availableDocuments?: string[];
 }
 
 const SAMPLE_QUERIES = [
@@ -23,20 +24,22 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   isSearching,
   queryLatencyMs,
   totalVectors,
+  availableDocuments = [],
 }) => {
   const [query, setQuery] = useState('');
   const [mode, setMode] = useState<SearchMode>('hybrid');
   const [topK, setTopK] = useState(5);
+  const [selectedDoc, setSelectedDoc] = useState<string>('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
-    onSearch(query.trim(), mode, topK);
+    onSearch(query.trim(), mode, topK, selectedDoc || null);
   };
 
   const handleSampleClick = (sample: string) => {
     setQuery(sample);
-    onSearch(sample, mode, topK);
+    onSearch(sample, mode, topK, selectedDoc || null);
   };
 
   return (
@@ -119,8 +122,30 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             </button>
           </div>
 
-          {/* Top-K Selector & Latency Pill */}
-          <div className="flex items-center space-x-3 font-mono">
+          {/* Filters & Latency Controls */}
+          <div className="flex flex-wrap items-center gap-3 font-mono">
+            {/* Document Scoping Filter */}
+            {availableDocuments.length > 0 && (
+              <div className="flex items-center space-x-2 text-slate-400 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800">
+                <Filter className="w-3.5 h-3.5 text-brand-400" />
+                <span>Scope:</span>
+                <select
+                  value={selectedDoc}
+                  onChange={(e) => setSelectedDoc(e.target.value)}
+                  className="bg-transparent text-white font-semibold focus:outline-none cursor-pointer max-w-[150px] truncate"
+                  title="Filter search to a specific document"
+                >
+                  <option value="" className="bg-slate-900 text-white">All Documents</option>
+                  {availableDocuments.map((doc) => (
+                    <option key={doc} value={doc} className="bg-slate-900 text-white">
+                      {doc}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Top-K Selector */}
             <div className="flex items-center space-x-2 text-slate-400 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800">
               <Sliders className="w-3.5 h-3.5 text-slate-400" />
               <span>Top-K:</span>

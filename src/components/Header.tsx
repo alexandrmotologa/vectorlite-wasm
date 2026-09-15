@@ -7,6 +7,7 @@ interface HeaderProps {
   vectorCount: number;
   totalTokens: number;
   downloadProgress: { file: string; progress: number } | null;
+  onSelectModel: (modelName: string) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -15,6 +16,7 @@ export const Header: React.FC<HeaderProps> = ({
   vectorCount,
   totalTokens,
   downloadProgress,
+  onSelectModel,
 }) => {
   return (
     <header className="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md sticky top-0 z-40">
@@ -30,16 +32,16 @@ export const Header: React.FC<HeaderProps> = ({
                 VectorLite<span className="text-brand-400 font-sans">.wasm</span>
               </h1>
               <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-slate-800 text-brand-300 border border-slate-700">
-                v0.1.0 • Client Wasm
+                v0.2.0 • Client Wasm
               </span>
             </div>
             <p className="text-xs text-slate-400">Zero-backend local semantic search & vector engine</p>
           </div>
         </div>
 
-        {/* Telemetry Status Pills */}
+        {/* Telemetry Status Pills & Model Selector */}
         <div className="hidden md:flex items-center space-x-3 text-xs font-mono">
-          {/* Model Status */}
+          {/* Model Selector Dropdown */}
           <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800">
             {modelStatus === 'loading' ? (
               <>
@@ -48,16 +50,29 @@ export const Header: React.FC<HeaderProps> = ({
                   {downloadProgress ? `${downloadProgress.file}: ${downloadProgress.progress}%` : 'Loading ONNX model...'}
                 </span>
               </>
-            ) : modelStatus === 'ready' ? (
-              <>
-                <CheckCircle2 className="w-3.5 h-3.5 text-brand-400" />
-                <span className="text-slate-300">{modelName.split('/').pop()}</span>
-                <span className="text-[10px] text-brand-400 bg-brand-950 px-1.5 py-0.2 rounded border border-brand-800/60">384-D</span>
-              </>
             ) : (
               <>
-                <Cpu className="w-3.5 h-3.5 text-slate-500" />
-                <span className="text-slate-400">Model standby</span>
+                {modelStatus === 'ready' ? (
+                  <CheckCircle2 className="w-3.5 h-3.5 text-brand-400 shrink-0" />
+                ) : (
+                  <Cpu className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                )}
+                <select
+                  value={modelName}
+                  onChange={(e) => onSelectModel(e.target.value)}
+                  className="bg-transparent text-slate-200 hover:text-white font-semibold focus:outline-none cursor-pointer text-xs"
+                  title="Select embedding model"
+                >
+                  <option value="Xenova/all-MiniLM-L6-v2" className="bg-slate-900 text-white">
+                    all-MiniLM-L6-v2 (Default 384-D)
+                  </option>
+                  <option value="Xenova/bge-small-en-v1.5" className="bg-slate-900 text-white">
+                    bge-small-en-v1.5 (High Accuracy)
+                  </option>
+                  <option value="Xenova/multilingual-e5-small" className="bg-slate-900 text-white">
+                    multilingual-e5-small (100+ Langs)
+                  </option>
+                </select>
               </>
             )}
           </div>

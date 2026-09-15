@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, FileText, Hash, Copy, Check, Binary } from 'lucide-react';
+import { X, FileText, Hash, Copy, Check, Binary, Compass } from 'lucide-react';
 import { TextChunk } from '../engine/chunker';
 import { HybridSearchResult } from '../engine/hybrid';
 
@@ -8,6 +8,7 @@ interface ChunkInspectorModalProps {
   result?: HybridSearchResult;
   vector?: Float32Array;
   onClose: () => void;
+  onFindSimilar?: (chunk: TextChunk) => void;
 }
 
 export const ChunkInspectorModal: React.FC<ChunkInspectorModalProps> = ({
@@ -15,6 +16,7 @@ export const ChunkInspectorModal: React.FC<ChunkInspectorModalProps> = ({
   result,
   vector,
   onClose,
+  onFindSimilar,
 }) => {
   const [copiedText, setCopiedText] = useState(false);
   const [copiedVector, setCopiedVector] = useState(false);
@@ -158,7 +160,23 @@ export const ChunkInspectorModal: React.FC<ChunkInspectorModalProps> = ({
         </div>
 
         {/* Modal Footer */}
-        <div className="px-6 py-3 border-t border-slate-800 bg-slate-950 flex justify-end">
+        <div className="px-6 py-3 border-t border-slate-800 bg-slate-950 flex items-center justify-between">
+          <div>
+            {onFindSimilar && (
+              <button
+                type="button"
+                onClick={() => {
+                  onFindSimilar(chunk);
+                  onClose();
+                }}
+                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-brand-950 hover:bg-brand-900/60 text-brand-300 border border-brand-800/60 text-xs font-medium transition-colors"
+              >
+                <Compass className="w-3.5 h-3.5 text-brand-400" />
+                <span>Find Similar Chunks</span>
+              </button>
+            )}
+          </div>
+
           <button
             type="button"
             onClick={onClose}

@@ -88,7 +88,7 @@ export class BM25Index {
     }
   }
 
-  public search(query: string, topK = 10): BM25SearchResult[] {
+  public search(query: string, topK = 10, filterFn?: (id: string) => boolean): BM25SearchResult[] {
     const queryTokens = this.tokenize(query);
     if (queryTokens.length === 0 || this.docLengths.size === 0) {
       return [];
@@ -107,6 +107,8 @@ export class BM25Index {
       const idf = Math.log(1 + (N - df + 0.5) / (df + 0.5));
 
       for (const [docId, tf] of posting.entries()) {
+        if (filterFn && !filterFn(docId)) continue;
+
         const docLen = this.docLengths.get(docId) || avgdl;
         const numerator = tf * (this.k1 + 1);
         const denominator = tf + this.k1 * (1 - this.b + this.b * (docLen / avgdl));

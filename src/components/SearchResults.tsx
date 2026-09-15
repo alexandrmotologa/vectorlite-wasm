@@ -7,6 +7,7 @@ interface SearchResultsProps {
   results: HybridSearchResult[];
   chunksMap: Map<string, TextChunk>;
   onInspectChunk: (chunk: TextChunk, result: HybridSearchResult) => void;
+  onFindSimilar?: (chunk: TextChunk) => void;
   query: string;
 }
 
@@ -14,6 +15,7 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
   results,
   chunksMap,
   onInspectChunk,
+  onFindSimilar,
   query,
 }) => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -132,6 +134,18 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
                 </span>
 
                 <div className="flex items-center space-x-2">
+                  {onFindSimilar && (
+                    <button
+                      type="button"
+                      onClick={() => onFindSimilar(chunk)}
+                      className="flex items-center space-x-1 text-slate-400 hover:text-brand-300 px-2 py-1 rounded hover:bg-slate-800 transition-colors"
+                      title="Run search using this chunk's embedding vector as the query"
+                    >
+                      <Compass className="w-3.5 h-3.5 text-brand-400" />
+                      <span>Find Similar</span>
+                    </button>
+                  )}
+
                   <button
                     type="button"
                     onClick={() => handleCopy(res.id, chunk.text)}

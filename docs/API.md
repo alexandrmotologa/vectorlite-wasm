@@ -1,12 +1,12 @@
 # VectorLite-Wasm: API Reference
 
-VectorLite-Wasm provides standalone, zero-dependency TypeScript modules for client-side vector search and text chunking.
+VectorLite-Wasm provides standalone, zero-dependency TypeScript modules for client-side vector search, quantization, hybrid retrieval, syntax-aware chunking, and local grounded RAG.
 
 ---
 
 ## 1. `HNSWIndex`
 
-Hierarchical Navigable Small World in-memory graph index.
+Hierarchical Navigable Small World in-memory graph index with predicate filtering.
 
 ```typescript
 import { HNSWIndex } from 'vectorlite-wasm/engine/hnsw_index';
@@ -23,20 +23,17 @@ const index = new HNSWIndex({
 ### Methods
 
 #### `insert(id: string, vector: Float32Array): void`
-Inserts a high-dimensional vector into the graph. Vectors should be normalized to unit length when using `'cosine'` metric.
+Inserts a high-dimensional vector into the graph. Vectors are normalized to unit length when using `'cosine'` metric.
 
-#### `search(query: Float32Array, topK: number, efSearch?: number): SearchResult[]`
-Performs approximate nearest neighbor search using beam routing.
-Returns array of:
+#### `search(query: Float32Array, topK: number, efSearch?: number, filterFn?: (id: string) => boolean): SearchResult[]`
+Performs approximate nearest neighbor search using beam routing. Optionally accepts a predicate function `filterFn` to scope matches to specific documents or metadata.
+
 ```typescript
-interface SearchResult {
-  id: string;
-  distance: number;
-  score: number; // Normalized similarity score [0.0, 1.0]
-}
+// Search only within 'systems_architecture.md'
+const results = index.search(queryVector, 5, (id) => chunkMap.get(id)?.documentName === 'systems_architecture.md');
 ```
 
-#### `bruteForceSearch(query: Float32Array, topK: number): SearchResult[]`
+#### `bruteForceSearch(query: Float32Array, topK: number, filterFn?: (id: string) => boolean): SearchResult[]`
 Executes an exact linear scan across all stored vectors. Useful for computing ground truth recall in benchmarks.
 
 #### `serialize(): SerializedHNSW`
@@ -49,7 +46,7 @@ Restores an in-memory index from a serialized snapshot.
 
 ## 2. `BM25Index`
 
-In-memory Okapi BM25 ranking algorithm for sparse lexical keyword retrieval.
+In-memory Okapi BM25 ranking algorithm for sparse lexical keyword retrieval with predicate filtering.
 
 ```typescript
 import { BM25Index } from 'vectorlite-wasm/engine/bm25';
@@ -60,16 +57,15 @@ const bm25 = new BM25Index(1.2, 0.75); // k1 = 1.2, b = 0.75
 bm25.addDocument('doc-1', 'PostgreSQL connection pooling with PgBouncer.');
 bm25.addDocument('doc-2', 'Redis cache clusters and distributed locks.');
 
-// Search exact terms
-const results = bm25.search('PgBouncer pooling', 5);
-// Returns: [{ id: 'doc-1', score: 2.84 }]
+// Search exact terms with optional filter
+const results = bm25.search('PgBouncer pooling', 5, (id) => id.startsWith('doc'));
 ```
 
 ---
 
 ## 3. `reciprocalRankFusion`
 
-Combines dense vector search results and sparse lexical results into a unified ranking.
+Combines dense vector search results and sparse lexical results into a unified ranking using Reciprocal Rank Fusion.
 
 ```typescript
 import { reciprocalRankFusion } from 'vectorlite-wasm/engine/hybrid';
@@ -83,48 +79,75 @@ const hybridResults = reciprocalRankFusion(denseResults, sparseResults, 10, {
 
 ---
 
-## 4. `RecursiveChunker`
+## 4. `CodeAwareChunker` & `CodeChunker`
 
-Hierarchical text splitter preserving Markdown headers, paragraph boundaries, and sentences.
+Syntax-aware code splitter preserving functions, classes, interfaces, and structs intact across Python, TypeScript, Rust, Go, JavaScript, and JSON.
 
 ```typescript
-import { RecursiveChunker } from 'vectorlite-wasm/engine/chunker';
+import { CodeChunker } from 'vectorlite-wasm/engine/code_chunker';
 
-const chunker = new RecursiveChunker({
-  chunkSize: 500,     // Max characters per chunk (default: 600)
-  chunkOverlap: 100,  // Character overlap between chunks (default: 120)
+// Check if file is supported code
+const isCode = CodeChunker.isSupportedCodeFile('cluster_node.py'); // true
+
+// Split preserving natural block boundaries
+const chunks = CodeChunker.split(sourceCode, 'cluster_node.py', {
+  maxChunkLines: 45,
+  overlapLines: 8,
 });
-
-const chunks = chunker.split(documentText, 'architecture_guide.md');
 ```
 
 ---
 
-## 5. `FastPCA`
+## 5. `ScalarQuantizer` (SQ8) & `BinaryQuantizer` (BQ)
 
-Online Principal Component Analysis using power iteration for projecting embeddings into 2D coordinates.
+Memory compaction utilities reducing vector RAM usage by up to 96.8%.
 
 ```typescript
-import { FastPCA } from 'vectorlite-wasm/engine/pca';
+import { ScalarQuantizer, BinaryQuantizer } from 'vectorlite-wasm/engine/quantization';
 
-// Fit model on dataset vectors
-const pcaModel = FastPCA.fit(vectors, 15); // 15 power iterations
+// 8-bit Int8 Scalar Quantization (75% RAM reduction)
+const sq8 = ScalarQuantizer.quantize(floatVector);
+const restored = ScalarQuantizer.dequantize(sq8);
+const simSQ8 = ScalarQuantizer.dotProductInt8(sq8_a, sq8_b);
 
-// Project vector into [0, 1] 2D space
-const point2D = FastPCA.project(queryVector, pcaModel);
-// { x: 0.45, y: 0.72 }
+// 1-bit Binary Quantization (96.8% RAM reduction)
+const bq = BinaryQuantizer.quantize(floatVector);
+const hammingDist = BinaryQuantizer.hammingDistance(bq_a, bq_b);
+const bqSimilarity = BinaryQuantizer.similarity(bq_a, bq_b);
 ```
 
 ---
 
-## 6. Snapshot Export & Import (`.vlite`)
+## 6. `LocalRAGSynthesizer`
+
+In-browser grounded answer extraction generating natural language responses with anchored citations `[1]`, `[2]`.
 
 ```typescript
-import { createSnapshotBlob, downloadSnapshot, parseSnapshot } from 'vectorlite-wasm/engine/snapshot';
+import { LocalRAGSynthesizer } from 'vectorlite-wasm/engine/rag_synthesizer';
 
-// Trigger browser file download
-downloadSnapshot(hnsw, chunks, 'knowledge-base.vlite');
+const answer = LocalRAGSynthesizer.synthesize(userQuery, retrievedChunks);
 
-// Parse uploaded file
-const { hnsw, chunks } = await parseSnapshot(file);
+console.log(answer.answer);
+// "HNSW builds a multi-layer graph [1] using skip-list hierarchy [2]..."
+console.log(answer.citations);
+// [{ id: 1, chunkId: 'c-1', documentName: 'systems_architecture.md', snippet: '...' }]
+```
+
+---
+
+## 7. `PCAProjector` (2D & 3D Orbital Projection)
+
+Fast power-iteration Principal Component Analysis projecting 384-dimensional vector clusters to 2D and 3D coordinate spaces.
+
+```typescript
+import { PCAProjector } from 'vectorlite-wasm/engine/pca';
+
+const pca = new PCAProjector();
+
+// 2D Projection
+const points2D = pca.fitTransform(vectorList, 25);
+
+// 3D Orbital Projection
+const points3D = pca.project3D(vectorList, 25);
+// Returns: Array<{ id: string; x: number; y: number; z: number }>
 ```

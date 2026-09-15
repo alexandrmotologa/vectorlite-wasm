@@ -311,11 +311,25 @@ export class HNSWIndex {
   }
 
   /**
-   * Performs Approximate Nearest Neighbor (ANN) search.
+   * Performs Approximate Nearest Neighbor (ANN) search with optional metadata filter predicate.
    */
-  public search(queryVector: Float32Array, topK: number, efSearch = this.efSearch): SearchResult[] {
+  public search(
+    queryVector: Float32Array,
+    topK: number,
+    efSearchOrFilter?: number | ((id: string) => boolean),
+    filterFn?: (id: string) => boolean
+  ): SearchResult[] {
     if (this.nodes.length === 0 || this.entryPointIndex === null) {
       return [];
+    }
+
+    let actualEfSearch = this.efSearch;
+    let actualFilter = filterFn;
+
+    if (typeof efSearchOrFilter === 'function') {
+      actualFilter = efSearchOrFilter;
+    } else if (typeof efSearchOrFilter === 'number') {
+      actualEfSearch = efSearchOrFilter;
     }
 
     let currEnterPoint = this.entryPointIndex;
@@ -326,11 +340,15 @@ export class HNSWIndex {
     }
 
     // 2. Beam search on layer 0 with efSearch
-    const ef = Math.max(efSearch, topK);
+    const ef = Math.max(actualFilter ? actualEfSearch * 2 : actualEfSearch, topK);
     const candidates = this.searchLayer(queryVector, [currEnterPoint], ef, 0);
 
+    const filtered = actualFilter
+      ? candidates.filter((item) => actualFilter!(this.nodes[item.index].id))
+      : candidates;
+
     // Return top-K candidates
-    return candidates.slice(0, topK).map((item) => {
+    return filtered.slice(0, topK).map((item) => {
       const node = this.nodes[item.index];
       // Convert distance back to similarity score [0.0 - 1.0]
       let score: number;
@@ -351,14 +369,20 @@ export class HNSWIndex {
   }
 
   /**
-   * Exact k-NN Brute Force Search (linear scan O(N)).
+   * Exact k-NN Brute Force Search (linear scan O(N)) with optional filter.
    * Used for benchmark ground truth calculation and recall verification.
    */
-  public bruteForceSearch(queryVector: Float32Array, topK: number): SearchResult[] {
+  public bruteForceSearch(
+    queryVector: Float32Array,
+    topK: number,
+    filterFn?: (id: string) => boolean
+  ): SearchResult[] {
     const scored: Array<{ id: string; distance: number; score: number }> = [];
 
     for (let i = 0; i < this.nodes.length; i++) {
       const node = this.nodes[i];
+      if (filterFn && !filterFn(node.id)) continue;
+
       const d = vectorDistance(queryVector, node.vector, this.metric, true);
       const score = Math.max(0.0, Math.min(1.0, cosineSimilarity(queryVector, node.vector, true)));
       scored.push({ id: node.id, distance: d, score });

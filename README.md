@@ -12,13 +12,13 @@
   <img src="https://img.shields.io/badge/License-MIT-emerald.svg" alt="MIT License" />
   <img src="https://img.shields.io/badge/WebAssembly-SIMD-blue.svg" alt="WebAssembly SIMD" />
   <img src="https://img.shields.io/badge/Index-HNSW%20+%20BM25-purple.svg" alt="HNSW and BM25" />
-  <img src="https://img.shields.io/badge/Model-all--MiniLM--L6--v2-orange.svg" alt="Quantized ONNX" />
-  <img src="https://img.shields.io/badge/Tests-11%20Passed-brightgreen.svg" alt="Vitest Unit Tests" />
+  <img src="https://img.shields.io/badge/Quantization-SQ8%20%2B%20BQ-indigo.svg" alt="SQ8 and BQ Quantization" />
+  <img src="https://img.shields.io/badge/Tests-16%20Passed-brightgreen.svg" alt="Vitest Unit Tests" />
 </p>
 
 ---
 
-VectorLite-Wasm is an in-browser vector search engine and semantic document retrieval system. It runs entirely inside the browser through WebAssembly and Web Workers, executing quantized transformer models (ONNX Runtime Web) alongside an in-memory Hierarchical Navigable Small World (HNSW) index and Okapi BM25 lexical search.
+VectorLite-Wasm is an in-browser vector search engine and semantic document retrieval system. It runs entirely inside the browser through WebAssembly and Web Workers, executing quantized transformer models (ONNX Runtime Web) alongside an in-memory Hierarchical Navigable Small World (HNSW) index, Okapi BM25 lexical search, vector quantization, and local grounded RAG.
 
 No document text or vector embeddings are transmitted to external servers.
 
@@ -26,10 +26,10 @@ No document text or vector embeddings are transmitted to external servers.
 
 ## Visual Overview
 
-### Semantic Search & 2D Vector Cluster Radar
+### Semantic Search, Local Grounded RAG & 3D Orbital Cluster Map
 ![VectorLite Studio & 2D Vector Cluster](docs/images/search-clusters.png)
 
-### Performance & Micro-Benchmarks
+### Performance & Micro-Benchmarks with Quantization Telemetry
 ![In-Memory Benchmark Telemetry](docs/images/performance-benchmark.png)
 
 ---
@@ -38,23 +38,26 @@ No document text or vector embeddings are transmitted to external servers.
                   +----------------------------------------------+
                   |               Browser Window                 |
                   |                                              |
-Document Drop --->|  [Recursive Chunker]                         |
+Document Drop --->|  [Recursive & Syntax-Aware Code Chunker]     |
                   |          |                                   |
-                  |          v (Batch Text Chunks)               |
+                  |          v (Batch Text / Code Chunks)        |
                   |  [Web Worker: ONNX Runtime Web]              |
                   |          |                                   |
-                  |          v (384-D Float32Array Embeddings)   |
+                  |          v (384-D Float32 / Quantized SQ8)   |
                   |  +----------------------------------------+  |
                   |  |  In-Memory Hybrid Storage              |  |
                   |  |  - HNSW Index (Dense Cosine Graph)     |  |
                   |  |  - BM25 Index (Sparse Inverted Index)  |  |
+                  |  |  - Predicate Metadata Filter Engine    |  |
                   |  |  - IndexedDB Persistence Store         |  |
                   |  +----------------------------------------+  |
                   |          |                                   |
 User Query ------>|  [Reciprocal Rank Fusion Engine]             |
                   |          |                                   |
+                  |          +---> [Local RAG Synthesizer]       |
+                  |          |                                   |
                   |          v                                   |
-                  |  [Ranked Matches & 2D PCA Cluster Map]       |
+                  |  [Ranked Matches & 3D Orbit Cluster Canvas]  |
                   +----------------------------------------------+
 ```
 
@@ -63,9 +66,14 @@ User Query ------>|  [Reciprocal Rank Fusion Engine]             |
 - **Zero Network Transmission:** All embedding generation, vector distance calculations, and graph routing occur inside the browser.
 - **Hierarchical Navigable Small World (HNSW):** Logarithmic graph-based approximate nearest neighbor search with configurable `M` (connections per node), `M0`, and `efConstruction`.
 - **Hybrid Search with Reciprocal Rank Fusion (RRF):** Blends dense semantic embeddings with sparse BM25 term frequency scores to handle conceptual meaning and exact identifiers equally well.
-- **ONNX Runtime Web Worker:** Offloads heavy transformer inference (`all-MiniLM-L6-v2`) from the main UI thread to maintain 60 FPS rendering.
-- **Multi-Format Ingestion:** Extracts text from PDF, Markdown, Plain Text, and JSON files on the client.
-- **2D PCA Projection Canvas:** Fast online Principal Component Analysis projects 384-dimensional vector clusters to interactive 2D coordinates with query distance waves.
+- **Multi-Model Selector:** Switch between `all-MiniLM-L6-v2` (fast 384-D), `bge-small-en-v1.5` (high-accuracy retrieval), and `multilingual-e5-small` (100+ languages) on the fly.
+- **Metadata & Document Scoping Filter:** Scope searches to specific documents or metadata attributes while preserving HNSW logarithmic routing speed.
+- **Find Similar (Query-by-Example):** Retrieve nearest neighboring chunks using a stored chunk's vector embedding without generating new query embeddings.
+- **Vector Quantization:** Scalar Quantization SQ8 (Int8 symmetric scaling for 75% RAM reduction) and 1-bit Binary Quantization (BQ bit-packing for 96.8% RAM reduction).
+- **Syntax-Aware Code Chunker:** Preserves functions, classes, interfaces, and struct blocks intact for Python, TypeScript, Rust, Go, JavaScript, and JSON.
+- **Direct URL & GitHub Raw Ingestion:** Fetch and index public documents and source code repositories directly via raw HTTPS endpoints.
+- **Local Grounded RAG:** Synthesizes direct natural language answers with bracketed citation markers `[1]`, `[2]` linking back to retrieved evidence chunks.
+- **3D Orbital Cluster Map:** Interactive 3D vector cluster projection on Canvas using fast power-iteration PCA with mouse drag rotation and elevation controls.
 - **Index Snapshot Export (`.vlite`):** Saves the complete graph topology, vector weights, and chunk texts to a portable JSON file for instant re-import without re-embedding.
 - **IndexedDB Persistence:** Automatically preserves chunks and vectors across page reloads.
 
@@ -119,75 +127,50 @@ The engine implements an in-memory multi-layer proximity graph based on the Malk
 
 Dense vector search can miss exact code names or specific variables, while lexical search can miss conceptual synonyms. VectorLite combines both using Reciprocal Rank Fusion:
 
-$$RRF(d) = \frac{w_{\text{dense}}}{60 + \text{rank}_{\text{dense}}(d)} + \frac{w_{\text{sparse}}}{60 + \text{rank}_{\text{sparse}}(d)}$$
+$$RRF(d) = \sum_{m \in M} \frac{w_m}{k + r_m(d)}$$
 
-Combined scores are normalized to the interval `[0.0, 1.0]`.
+Where $k = 60$, $r_m(d)$ is the rank in model $m$, and $w_m$ is the modality weight.
 
-## Benchmark Numbers
+### Vector Quantization
 
-Measured on a standard consumer laptop (Apple M-series or Intel Core i7) in Chrome:
+- **Scalar Quantization (SQ8):** Compresses 32-bit floats into signed 8-bit integers (`Int8Array`) using absolute maximum dynamic scaling. Reduces memory from 1,536 bytes to 388 bytes per 384-dimensional vector while maintaining >99% cosine correlation.
+- **Binary Quantization (BQ):** Converts dimensions to 1-bit binary representations based on sign ($v_i > 0 \to 1$, $v_i \le 0 \to 0$), packing 384 dimensions into 48 bytes. Computes Hamming distance via bitwise XOR and hardware POPCNT.
 
-| Metric | Measured Value |
-|---|---|
-| Query Latency (HNSW, 500 vectors) | 0.8 ms to 2.4 ms |
-| Lexical BM25 Search Latency | 0.1 ms to 0.4 ms |
-| Embedding Speed (Web Worker) | 12 to 25 chunks/sec |
-| Recall@10 vs. Exact Brute Force k-NN | >= 94.2% |
-| Memory Footprint (1,000 vectors, 384-D) | ~2.1 MB total RAM |
+### Local Grounded RAG
 
-## Repository Structure
+Extracts high-salience factual sentences from the top retrieved chunks, removes redundant phrasing, and assembles a concise summary with numbered citations `[1]`, `[2]` pointing to original source excerpts.
+
+## Project Structure
 
 ```
 vectorlite-wasm/
-├── src/
-│   ├── engine/
-│   │   ├── similarity.ts       # Loop-unrolled vector math (cosine, dot, euclidean)
-│   │   ├── hnsw_index.ts       # In-memory HNSW proximity graph
-│   │   ├── bm25.ts             # Okapi BM25 inverted lexical index
-│   │   ├── hybrid.ts           # Reciprocal Rank Fusion rank combiner
-│   │   ├── chunker.ts          # Hierarchical recursive text splitter
-│   │   ├── pdf_loader.ts       # Client-side PDF parser
-│   │   ├── pca.ts              # Online 2D dimensionality reduction
-│   │   ├── snapshot.ts         # .vlite snapshot export/import
-│   │   └── storage.ts          # IndexedDB wrapper
-│   ├── workers/
-│   │   └── embedding.worker.ts # Web Worker running ONNX Runtime Web
-│   ├── components/             # React interface components
-│   ├── App.tsx                 # Main application controller
-│   └── styles/                 # Tailwind CSS styles
+├── docs/
+│   ├── images/              # Architecture diagrams, logos, and screenshots
+│   └── API.md               # API documentation for engine modules
 ├── public/
-│   ├── samples/                # Pre-bundled technical datasets
-│   └── favicon.svg             # Vector graph icon
-├── tests/                      # Unit test suites (Vitest)
-└── docs/                       # Architecture and API documentation
-```
-
-## Programmatic API
-
-VectorLite modules can be imported directly into other TypeScript or JavaScript applications:
-
-```typescript
-import { HNSWIndex } from './engine/hnsw_index';
-import { normalize } from './engine/similarity';
-
-// Initialize index
-const index = new HNSWIndex({ M: 16, efConstruction: 64, efSearch: 32 });
-
-// Insert unit-normalized vectors
-index.insert('chunk-1', normalize(new Float32Array([0.12, 0.45, -0.83, ...])));
-index.insert('chunk-2', normalize(new Float32Array([-0.31, 0.62, 0.15, ...])));
-
-// Search top-5 nearest neighbors
-const query = normalize(new Float32Array([0.10, 0.40, -0.80, ...]));
-const results = index.search(query, 5);
-
-console.log(results);
-// [
-//   { id: 'chunk-1', distance: 0.0024, score: 0.9976 },
-//   ...
-// ]
+│   └── samples/             # Pre-bundled technical datasets & code files
+├── src/
+│   ├── components/          # React UI components (Radar, Search, Dropzone, RAG, Benchmarks)
+│   ├── engine/              # Core standalone modules
+│   │   ├── bm25.ts          # Okapi BM25 lexical engine
+│   │   ├── chunker.ts       # Recursive markdown text splitter
+│   │   ├── code_chunker.ts  # Syntax-aware code chunker
+│   │   ├── hnsw_index.ts    # HNSW graph indexing & search
+│   │   ├── hybrid.ts        # Reciprocal Rank Fusion combiner
+│   │   ├── pca.ts           # Online PCA 2D & 3D cluster projector
+│   │   ├── pdf_loader.ts    # Client-side PDF text extractor
+│   │   ├── quantization.ts  # SQ8 and BQ vector quantization
+│   │   ├── rag_synthesizer.ts # Local grounded RAG answer generator
+│   │   ├── similarity.ts    # Unrolled SIMD-friendly vector math
+│   │   ├── snapshot.ts      # .vlite snapshot export/import
+│   │   └── storage.ts       # IndexedDB storage layer
+│   ├── workers/             # Web Worker running ONNX Runtime Web
+│   ├── App.tsx              # Main application shell
+│   └── index.css            # Tailwind & custom glow styles
+├── tests/                   # 7 Vitest test suites (16 unit tests)
+└── vite.config.ts           # Vite configuration with Wasm headers
 ```
 
 ## License
 
-MIT License. See [LICENSE](LICENSE) for details.
+MIT License. Built with ❤️ by Alexandr Motologa.
