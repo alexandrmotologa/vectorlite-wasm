@@ -52,6 +52,17 @@ def create_demo_gif():
     )
     print(f"Successfully generated {gif_path} (Size: {os.path.getsize(gif_path) / 1024:.1f} KB)")
 
+    project_gif_path = "docs/images/vectorlite-wasm_demo.gif"
+    images[0].save(
+        project_gif_path,
+        save_all=True,
+        append_images=images[1:],
+        duration=durations,
+        loop=0,
+        optimize=True
+    )
+    print(f"Successfully generated {project_gif_path} (Size: {os.path.getsize(project_gif_path) / 1024:.1f} KB)")
+
     # Also save animated WebP
     webp_path = "docs/images/demo.webp"
     # For webp, use original RGBA resized for maximum visual fidelity

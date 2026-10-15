@@ -151,3 +151,68 @@ const points2D = pca.fitTransform(vectorList, 25);
 const points3D = pca.project3D(vectorList, 25);
 // Returns: Array<{ id: string; x: number; y: number; z: number }>
 ```
+
+---
+
+## 8. `FastTSNE` (Non-Linear 2D Manifold Projection)
+
+Computes non-linear 2D embeddings preserving local neighborhood clusters using Barnes-Hut or exact t-SNE.
+
+```typescript
+import { FastTSNE } from 'vectorlite-wasm/engine/tsne';
+
+const tsne = new FastTSNE({
+  perplexity: 15,
+  learningRate: 100,
+  maxIterations: 250,
+});
+
+const points2D = tsne.fitTransform(vectorList);
+// Returns: Array<{ id: string; x: number; y: number }>
+```
+
+---
+
+## 9. `exportBinarySnapshot` & `importBinarySnapshot`
+
+Compresses HNSW graph topology, vectors, and chunks into a compact binary format (`.vlws`) with LZ-string compression.
+
+```typescript
+import { exportBinarySnapshot, importBinarySnapshot } from 'vectorlite-wasm/engine/binary_snapshot';
+
+// Serialize and compress to .vlws
+const binaryPayload = exportBinarySnapshot(hnswIndex, chunkMap);
+
+// Deserialize and hydrate in-memory index
+const { index, chunks } = importBinarySnapshot(binaryPayload);
+```
+
+---
+
+## 10. `evaluateRecallAtK` (Ground Truth Verification)
+
+Audits approximate nearest neighbor recall against exact linear scans.
+
+```typescript
+import { evaluateRecallAtK } from 'vectorlite-wasm/engine/recall_eval';
+
+const audit = evaluateRecallAtK(hnswIndex, allVectors, {
+  k: 10,
+  queryCount: 25,
+});
+
+console.log(audit.recallScore); // e.g. 1.0 (100% recall)
+console.log(audit.meanLatencyMs); // e.g. 0.8ms
+```
+
+---
+
+## 11. `detectWebGPUSupport`
+
+Detects client browser support for WebGPU hardware acceleration with fallback to WebAssembly SIMD workers.
+
+```typescript
+import { detectWebGPUSupport } from 'vectorlite-wasm/engine/webgpu';
+
+const isWebGPUSupported = await detectWebGPUSupport();
+```
