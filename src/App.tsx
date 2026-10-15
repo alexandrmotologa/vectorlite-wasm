@@ -32,8 +32,30 @@ export const App: React.FC = () => {
   // States
   const [modelStatus, setModelStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [modelName, setModelName] = useState('Xenova/all-MiniLM-L6-v2');
+  const [embeddingDevice, setEmbeddingDevice] = useState<'wasm' | 'webgpu'>('wasm');
+  const [hasWebGpu, setHasWebGpu] = useState(false);
+  const embeddingDeviceRef = useRef(embeddingDevice);
+  embeddingDeviceRef.current = embeddingDevice;
   const [isFallback, setIsFallback] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState<{ file: string; progress: number } | null>(null);
+
+  // Detect WebGPU support on mount
+  useEffect(() => {
+    if (typeof navigator !== 'undefined' && 'gpu' in navigator && navigator.gpu) {
+      setHasWebGpu(true);
+    }
+  }, []);
+
+  // Theme State
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    return (localStorage.getItem('vlw_theme') as 'dark' | 'light') || 'dark';
+  });
+
+  const toggleTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    localStorage.setItem('vlw_theme', next);
+  };
 
   // RAG States
   const [ragAnswer, setRagAnswer] = useState<RAGAnswer | null>(null);
@@ -170,6 +192,9 @@ export const App: React.FC = () => {
       if (msg.type === 'STATUS') {
         setModelStatus(msg.status);
         setIsFallback(Boolean(msg.isFallback));
+        if (msg.device) {
+          setEmbeddingDevice(msg.device);
+        }
       } else if (msg.type === 'PROGRESS') {
         setDownloadProgress({ file: msg.file, progress: msg.progress });
       } else if (msg.type === 'BATCH_PROGRESS') {
@@ -199,7 +224,7 @@ export const App: React.FC = () => {
       }
     };
 
-    embWorker.postMessage({ type: 'INIT', modelName } as WorkerInMessage);
+    embWorker.postMessage({ type: 'INIT', modelName, device: embeddingDeviceRef.current } as WorkerInMessage);
 
     // 2. Generative RAG Worker
     const rWorker = new Worker(new URL('./workers/rag.worker.ts', import.meta.url), {
@@ -305,7 +330,20 @@ export const App: React.FC = () => {
 
     setModelName(newModel);
     setModelStatus('loading');
-    workerRef.current?.postMessage({ type: 'INIT', modelName: newModel } as WorkerInMessage);
+    workerRef.current?.postMessage({ type: 'INIT', modelName: newModel, device: embeddingDevice } as WorkerInMessage);
+  };
+
+  // Handle WebGPU Device Toggling
+  const handleToggleDevice = () => {
+    if (!hasWebGpu) return;
+    const nextDevice = embeddingDevice === 'webgpu' ? 'wasm' : 'webgpu';
+    setEmbeddingDevice(nextDevice);
+    setModelStatus('loading');
+    workerRef.current?.postMessage({
+      type: 'INIT',
+      modelName,
+      device: nextDevice,
+    } as WorkerInMessage);
   };
 
   // Real in-memory quantization switching
@@ -327,6 +365,13 @@ export const App: React.FC = () => {
     }
 
     hnswRef.current = newHnsw;
+  };
+
+  const [, setEfSearch] = useState(hnswRef.current.efSearch);
+
+  const handleEfSearchChange = (efSearch: number) => {
+    hnswRef.current.efSearch = efSearch;
+    setEfSearch(efSearch);
   };
 
   // Handle adding new document
@@ -526,6 +571,7 @@ export const App: React.FC = () => {
     const nodes = restoredHnsw.getAllNodes();
     setChunks(restoredChunks);
     setVectors(nodes.map((n) => ({ id: n.id, vector: n.vector })));
+    setEfSearch(restoredHnsw.efSearch);
     setSearchResults([]);
     setRagAnswer(null);
   };
@@ -578,16 +624,28 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 bg-grid-pattern selection:bg-brand-500/20 selection:text-brand-300">
+    <div 
+      data-theme={theme}
+      className={`min-h-screen flex flex-col selection:bg-brand-500/20 selection:text-brand-300 transition-colors duration-300 ${
+        theme === 'light' 
+          ? 'bg-white text-slate-900' 
+          : 'bg-slate-950 text-slate-100 bg-grid-pattern'
+      }`}
+    >
       <Header
         modelStatus={modelStatus}
         modelName={modelName}
         isFallback={isFallback}
         isWasmSimd={isSimdAvailable}
+        hasWebGpu={hasWebGpu}
+        embeddingDevice={embeddingDevice}
+        onToggleDevice={handleToggleDevice}
         vectorCount={vectors.length}
         totalTokens={totalTokens}
         downloadProgress={downloadProgress}
         onSelectModel={handleSelectModel}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
 
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 w-full">
@@ -717,6 +775,7 @@ export const App: React.FC = () => {
           lastLatencyMs={queryLatencyMs}
           totalTokens={totalTokens}
           onSwitchQuantization={handleSwitchQuantization}
+          onEfSearchChange={handleEfSearchChange}
         />
       </main>
 

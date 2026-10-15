@@ -1,0 +1,16 @@
+{
+  "name": "VectorLite-Wasm",
+  "short_name": "VectorLite",
+  "description": "In-browser vector search and semantic retrieval engine running entirely client-side via WebAssembly.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#22c55e",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

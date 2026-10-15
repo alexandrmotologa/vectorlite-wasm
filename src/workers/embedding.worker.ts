@@ -4,12 +4,13 @@ let currentModelName = 'Xenova/all-MiniLM-L6-v2';
 export interface WorkerInMessage {
   type: 'INIT' | 'EMBED_BATCH' | 'EMBED_QUERY';
   modelName?: string;
+  device?: 'wasm' | 'webgpu';
   items?: Array<{ id: string; text: string }>;
   query?: string;
 }
 
 export type WorkerOutMessage =
-  | { type: 'STATUS'; status: 'loading' | 'ready' | 'error'; message?: string; isFallback?: boolean; modelName?: string }
+  | { type: 'STATUS'; status: 'loading' | 'ready' | 'error'; message?: string; isFallback?: boolean; modelName?: string; device?: 'wasm' | 'webgpu' }
   | { type: 'PROGRESS'; file: string; progress: number; loaded?: number; total?: number }
   | { type: 'BATCH_PROGRESS'; current: number; total: number }
   | { type: 'BATCH_RESULT'; results: Array<{ id: string; vector: Float32Array }> }
@@ -51,20 +52,21 @@ function generateFallbackEmbedding(text: string, dim = 384): Float32Array {
 }
 
 self.onmessage = async (e: MessageEvent<WorkerInMessage>) => {
-  const { type, modelName, items, query } = e.data;
+  const { type, modelName, device, items, query } = e.data;
 
   try {
     if (type === 'INIT') {
       const targetModel = modelName || currentModelName;
-      self.postMessage({ type: 'STATUS', status: 'loading', message: `Initializing model ${targetModel}...` });
+      // Check if WebGPU is available in worker context
+      const targetDevice = device || 'wasm';
+      self.postMessage({ type: 'STATUS', status: 'loading', message: `Initializing model ${targetModel}...`, device: targetDevice });
 
       try {
         const { pipeline, env } = await import('@xenova/transformers');
         env.allowLocalModels = false;
         env.useBrowserCache = true;
 
-        // Allow pipeline to download completely with real progress tracking
-        const initPromise = pipeline('feature-extraction', targetModel, {
+        const pipelineOptions: any = {
           quantized: true,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           progress_callback: (prog: any) => {
@@ -78,7 +80,13 @@ self.onmessage = async (e: MessageEvent<WorkerInMessage>) => {
               });
             }
           },
-        });
+        };
+        if (targetDevice === 'webgpu') {
+          pipelineOptions.device = 'webgpu';
+        }
+
+        // Allow pipeline to download completely with real progress tracking
+        const initPromise = pipeline('feature-extraction', targetModel, pipelineOptions);
 
         extractor = await initPromise;
         currentModelName = targetModel;
@@ -87,7 +95,8 @@ self.onmessage = async (e: MessageEvent<WorkerInMessage>) => {
           status: 'ready',
           isFallback: false,
           modelName: targetModel,
-          message: `Model ${targetModel} loaded into ONNX WebAssembly runtime.`,
+          device: targetDevice,
+          message: `Model ${targetModel} loaded into ONNX ${targetDevice === 'webgpu' ? 'WebGPU' : 'WebAssembly'} runtime.`,
         });
       } catch (loadErr) {
         console.warn('Transformers pipeline load failed, activating offline fallback:', loadErr);
@@ -97,6 +106,7 @@ self.onmessage = async (e: MessageEvent<WorkerInMessage>) => {
           status: 'ready',
           isFallback: true,
           modelName: currentModelName,
+          device: 'wasm',
           message: `Network offline or blocked. Running in offline N-gram hash vector mode.`,
         });
       }

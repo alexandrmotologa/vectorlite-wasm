@@ -1,5 +1,5 @@
 import React from 'react';
-import { Database, Cpu, HardDrive, CheckCircle2, Loader2, Sparkles, Zap, AlertTriangle } from 'lucide-react';
+import { Database, Cpu, HardDrive, CheckCircle2, Loader2, Sparkles, Zap, AlertTriangle, Sun, Moon } from 'lucide-react';
 
 interface HeaderProps {
   modelStatus: 'idle' | 'loading' | 'ready' | 'error';
@@ -10,6 +10,11 @@ interface HeaderProps {
   onSelectModel: (modelName: string) => void;
   isFallback?: boolean;
   isWasmSimd?: boolean;
+  hasWebGpu?: boolean;
+  embeddingDevice?: 'wasm' | 'webgpu';
+  onToggleDevice?: () => void;
+  theme?: 'dark' | 'light';
+  onToggleTheme?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -21,6 +26,11 @@ export const Header: React.FC<HeaderProps> = ({
   onSelectModel,
   isFallback = false,
   isWasmSimd = true,
+  hasWebGpu = false,
+  embeddingDevice = 'wasm',
+  onToggleDevice,
+  theme = 'dark',
+  onToggleTheme,
 }) => {
   return (
     <header className="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md sticky top-0 z-40">
@@ -57,6 +67,39 @@ export const Header: React.FC<HeaderProps> = ({
             <Zap className={`w-3.5 h-3.5 ${isWasmSimd ? 'text-indigo-400 fill-indigo-400/20' : 'text-slate-500'}`} />
             <span>WASM SIMD: {isWasmSimd ? 'Active' : 'Unrolled JS'}</span>
           </div>
+
+          {/* WebGPU Hardware Acceleration Badge */}
+          {hasWebGpu ? (
+            <button
+              type="button"
+              onClick={onToggleDevice}
+              className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg border text-[11px] transition-colors cursor-pointer ${
+                embeddingDevice === 'webgpu'
+                  ? 'bg-slate-900 border-amber-500/50 text-amber-300 hover:bg-slate-800/80'
+                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+              }`}
+              title={
+                embeddingDevice === 'webgpu'
+                  ? 'WebGPU active for matrix operations. Click to switch to CPU/WASM'
+                  : 'WebGPU supported. Click to enable WebGPU hardware acceleration'
+              }
+            >
+              {embeddingDevice === 'webgpu' ? (
+                <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400/20" />
+              ) : (
+                <Cpu className="w-3.5 h-3.5 text-slate-500" />
+              )}
+              <span>{embeddingDevice === 'webgpu' ? 'WebGPU Active' : 'WebGPU Ready'}</span>
+            </button>
+          ) : (
+            <div
+              className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg border text-[11px] bg-slate-900 border-slate-800 text-slate-500"
+              title="WebGPU not detected in this browser environment. Using CPU/WASM."
+            >
+              <Cpu className="w-3.5 h-3.5 text-slate-500" />
+              <span>CPU/WASM</span>
+            </div>
+          )}
 
           {/* Model Selector Dropdown & Real Status */}
           <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800">
@@ -120,6 +163,16 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* External Links */}
         <div className="flex items-center space-x-2">
+          {onToggleTheme && (
+            <button
+              type="button"
+              onClick={onToggleTheme}
+              className="p-2 rounded-lg hover:bg-slate-800 transition-colors text-slate-400 hover:text-white"
+              title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            >
+              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+          )}
           <a
             href="https://github.com/alexandrmotologa/vectorlite-wasm"
             target="_blank"

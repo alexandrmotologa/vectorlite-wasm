@@ -7,6 +7,7 @@ interface BenchmarkStatsProps {
   lastLatencyMs: number | null;
   totalTokens: number;
   onSwitchQuantization?: (mode: 'f32' | 'sq8' | 'bq') => void;
+  onEfSearchChange?: (efSearch: number) => void;
   onRunRecallAudit?: () => { recallAtK: number; hnswResults: string[]; bruteForceResults: string[]; k: number } | null;
 }
 
@@ -24,6 +25,7 @@ export const BenchmarkStats: React.FC<BenchmarkStatsProps> = ({
   lastLatencyMs,
   totalTokens,
   onSwitchQuantization,
+  onEfSearchChange,
 }) => {
   const [isRunning, setIsRunning] = useState(false);
   const [benchResult, setBenchResult] = useState<BenchmarkResult | null>(null);
@@ -173,6 +175,24 @@ export const BenchmarkStats: React.FC<BenchmarkStatsProps> = ({
             M={hnsw.M} • M0={hnsw.M0}
           </span>
           <span className="text-[10px] text-slate-500 block mt-0.5">efConst: {hnsw.efConstruction}</span>
+          {onEfSearchChange && (
+            <div className="mt-2 pt-2 border-t border-slate-800">
+              <div className="flex items-center justify-between text-[10px]">
+                <span className="text-slate-400">efSearch:</span>
+                <span className="text-brand-300 font-bold">{hnsw.efSearch}</span>
+              </div>
+              <input
+                type="range" min={8} max={256} step={8}
+                value={hnsw.efSearch}
+                onChange={(e) => onEfSearchChange(Number(e.target.value))}
+                className="w-full mt-1 accent-brand-500 h-1"
+              />
+              <div className="flex justify-between text-[9px] text-slate-600 mt-0.5">
+                <span>Fast (8)</span>
+                <span>Accurate (256)</span>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
