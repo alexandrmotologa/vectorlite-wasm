@@ -10,6 +10,7 @@ interface VectorClusterCanvasProps {
   chunksMap: Map<string, TextChunk>;
   queryVector: Float32Array | null;
   searchResults: HybridSearchResult[];
+  theme?: 'dark' | 'light';
   onSelectChunk?: (chunk: TextChunk) => void;
 }
 
@@ -40,8 +41,10 @@ export const VectorClusterCanvas: React.FC<VectorClusterCanvasProps> = ({
   chunksMap,
   queryVector,
   searchResults,
+  theme = 'dark',
   onSelectChunk,
 }) => {
+  const isLight = theme === 'light';
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 400 });
@@ -202,11 +205,11 @@ export const VectorClusterCanvas: React.FC<VectorClusterCanvasProps> = ({
     ctx.clearRect(0, 0, width, height);
 
     // Background
-    ctx.fillStyle = '#050914';
+    ctx.fillStyle = isLight ? '#f8fafc' : '#050914';
     ctx.fillRect(0, 0, width, height);
 
     // Grid
-    ctx.strokeStyle = 'rgba(30, 41, 59, 0.4)';
+    ctx.strokeStyle = isLight ? 'rgba(203, 213, 225, 0.6)' : 'rgba(30, 41, 59, 0.4)';
     ctx.lineWidth = 1;
     const gridSize = 40 * zoom;
     const offsetX = (pan.x % gridSize);
@@ -226,7 +229,7 @@ export const VectorClusterCanvas: React.FC<VectorClusterCanvasProps> = ({
     }
 
     if (projectedPoints2D.length === 0) {
-      ctx.fillStyle = '#64748b';
+      ctx.fillStyle = isLight ? '#475569' : '#64748b';
       ctx.font = '13px Inter, sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('Load documents above to project embeddings into vector space', width / 2, height / 2);
@@ -323,11 +326,11 @@ export const VectorClusterCanvas: React.FC<VectorClusterCanvasProps> = ({
         ctx.arc(qPos.x, qPos.y, 6, 0, Math.PI * 2);
         ctx.fillStyle = '#ef4444';
         ctx.fill();
-        ctx.strokeStyle = '#ffffff';
+        ctx.strokeStyle = isLight ? '#0f172a' : '#ffffff';
         ctx.lineWidth = 2;
         ctx.stroke();
 
-        ctx.fillStyle = '#fca5a5';
+        ctx.fillStyle = isLight ? '#dc2626' : '#fca5a5';
         ctx.font = 'bold 11px JetBrains Mono, monospace';
         ctx.textAlign = 'left';
         ctx.fillText('Q (Query)', qPos.x + 10, qPos.y - 8);
@@ -362,7 +365,7 @@ export const VectorClusterCanvas: React.FC<VectorClusterCanvasProps> = ({
       };
 
       // 3D coordinate box outline
-      ctx.strokeStyle = 'rgba(51, 65, 85, 0.3)';
+      ctx.strokeStyle = isLight ? 'rgba(148, 163, 184, 0.45)' : 'rgba(51, 65, 85, 0.3)';
       ctx.lineWidth = 1;
       const corners = [
         [-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1],
@@ -483,6 +486,7 @@ export const VectorClusterCanvas: React.FC<VectorClusterCanvasProps> = ({
     canvasSize,
     selectionBox,
     selectedChunkIds,
+    isLight,
   ]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -627,23 +631,23 @@ export const VectorClusterCanvas: React.FC<VectorClusterCanvasProps> = ({
   };
 
   return (
-    <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 backdrop-blur-sm relative overflow-hidden">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center space-x-2">
-            <Eye className="w-5 h-5 text-brand-400" />
-            <h2 className="text-base font-semibold text-white">Vector Space Projection</h2>
+    <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-6 backdrop-blur-sm relative overflow-hidden shadow-xs">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <div className="flex items-center space-x-2 mr-1">
+            <Eye className="w-5 h-5 text-brand-500 dark:text-brand-400 shrink-0" />
+            <h2 className="text-base font-semibold text-slate-900 dark:text-white whitespace-nowrap">Vector Space Projection</h2>
           </div>
 
           {/* 2D vs 3D View Toggle */}
-          <div className="flex items-center space-x-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-mono">
+          <div className="flex items-center space-x-1 bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-mono">
             <button
               type="button"
               onClick={() => setViewMode('2D')}
               className={`flex items-center space-x-1 px-2.5 py-1 rounded-lg transition-all ${
                 viewMode === '2D'
-                  ? 'bg-brand-500 text-slate-950 font-bold'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-brand-500 text-slate-950 font-bold shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <Box className="w-3.5 h-3.5" />
@@ -654,8 +658,8 @@ export const VectorClusterCanvas: React.FC<VectorClusterCanvasProps> = ({
               onClick={() => setViewMode('3D')}
               className={`flex items-center space-x-1 px-2.5 py-1 rounded-lg transition-all ${
                 viewMode === '3D'
-                  ? 'bg-brand-500 text-slate-950 font-bold'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-brand-500 text-slate-950 font-bold shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <Orbit className="w-3.5 h-3.5" />
@@ -664,14 +668,14 @@ export const VectorClusterCanvas: React.FC<VectorClusterCanvasProps> = ({
           </div>
 
           {/* PCA vs t-SNE Algorithm Toggle */}
-          <div className="flex items-center space-x-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-mono">
+          <div className="flex items-center space-x-1 bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-mono">
             <button
               type="button"
               onClick={() => setProjectionMethod('pca')}
               className={`flex items-center space-x-1 px-2.5 py-1 rounded-lg transition-all ${
                 projectionMethod === 'pca'
-                  ? 'bg-brand-500 text-slate-950 font-bold'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-brand-500 text-slate-950 font-bold shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <span>PCA (Linear)</span>
@@ -684,8 +688,8 @@ export const VectorClusterCanvas: React.FC<VectorClusterCanvasProps> = ({
               }}
               className={`flex items-center space-x-1 px-2.5 py-1 rounded-lg transition-all ${
                 projectionMethod === 'tsne'
-                  ? 'bg-brand-500 text-slate-950 font-bold'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-brand-500 text-slate-950 font-bold shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <span>t-SNE (Non-linear)</span>
@@ -693,7 +697,7 @@ export const VectorClusterCanvas: React.FC<VectorClusterCanvasProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center space-x-1.5 bg-slate-950 px-2 py-1 rounded-xl border border-slate-800 text-xs">
+        <div className="flex items-center self-start md:self-auto space-x-1.5 bg-slate-100 dark:bg-slate-950 px-2 py-1 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
           <button
             type="button"
             onClick={() => {
@@ -701,7 +705,7 @@ export const VectorClusterCanvas: React.FC<VectorClusterCanvasProps> = ({
               setSelectedChunkIds(new Set());
             }}
             className={`px-2 py-1 rounded text-xs font-mono transition-colors ${
-              isBoxSelectMode ? 'bg-brand-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              isBoxSelectMode ? 'bg-brand-500 text-slate-950 font-bold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800'
             }`}
             title="Toggle rectangle box selection (or hold Shift while dragging)"
           >
@@ -711,7 +715,7 @@ export const VectorClusterCanvas: React.FC<VectorClusterCanvasProps> = ({
             type="button"
             onClick={() => setZoom((z) => Math.min(3.0, z * 1.2))}
             title="Zoom In"
-            className="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition-colors"
+            className="p-1 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
           >
             <ZoomIn className="w-4 h-4" />
           </button>
@@ -719,7 +723,7 @@ export const VectorClusterCanvas: React.FC<VectorClusterCanvasProps> = ({
             type="button"
             onClick={() => setZoom((z) => Math.max(0.4, z / 1.2))}
             title="Zoom Out"
-            className="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition-colors"
+            className="p-1 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
           >
             <ZoomOut className="w-4 h-4" />
           </button>
@@ -727,14 +731,14 @@ export const VectorClusterCanvas: React.FC<VectorClusterCanvasProps> = ({
             type="button"
             onClick={resetView}
             title="Reset View"
-            className="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition-colors"
+            className="p-1 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      <div ref={containerRef} className="relative border border-slate-800 rounded-xl overflow-hidden cursor-crosshair">
+      <div ref={containerRef} className="relative border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden cursor-crosshair">
         <canvas
           ref={canvasRef}
           width={canvasSize.width}
@@ -753,10 +757,10 @@ export const VectorClusterCanvas: React.FC<VectorClusterCanvasProps> = ({
         />
 
         {selectedChunkIds.size > 0 && (
-          <div className="absolute top-3 left-4 right-4 bg-slate-950/90 border border-brand-500/50 rounded-xl p-3 backdrop-blur-md flex items-center justify-between text-xs z-20 shadow-xl">
+          <div className="absolute top-3 left-4 right-4 bg-white/95 dark:bg-slate-950/90 border border-brand-500/50 rounded-xl p-3 backdrop-blur-md flex items-center justify-between text-xs z-20 shadow-xl">
             <div className="flex items-center space-x-2">
-              <span className="w-2 h-2 rounded-full bg-brand-400 animate-pulse" />
-              <span className="text-white font-semibold">
+              <span className="w-2 h-2 rounded-full bg-brand-500 dark:bg-brand-400 animate-pulse" />
+              <span className="text-slate-900 dark:text-white font-semibold">
                 {selectedChunkIds.size} chunks selected {selectedDocCount > 0 ? `across ${selectedDocCount} document${selectedDocCount === 1 ? '' : 's'}` : 'in cluster'}
               </span>
             </div>
@@ -775,7 +779,7 @@ export const VectorClusterCanvas: React.FC<VectorClusterCanvasProps> = ({
               <button
                 type="button"
                 onClick={() => setSelectedChunkIds(new Set())}
-                className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs transition-colors"
+                className="px-2 py-1 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-300 rounded-lg text-xs transition-colors"
                 title="Clear Selection"
               >
                 Deselect
@@ -786,43 +790,43 @@ export const VectorClusterCanvas: React.FC<VectorClusterCanvasProps> = ({
 
         {hoveredPoint && (
           <div
-            className="absolute z-30 pointer-events-none p-3 rounded-xl bg-slate-950/95 border border-slate-700 shadow-2xl backdrop-blur-md max-w-xs text-xs font-mono"
+            className="absolute z-30 pointer-events-none p-3 rounded-xl bg-white/95 dark:bg-slate-950/95 border border-slate-300 dark:border-slate-700 shadow-2xl backdrop-blur-md max-w-xs text-xs font-mono"
             style={{
               left: Math.min(hoveredPoint.screenX + 15, 540),
               top: Math.max(10, hoveredPoint.screenY - 10),
             }}
           >
-            <div className="flex items-center justify-between mb-1 text-[11px] text-brand-400 font-bold">
+            <div className="flex items-center justify-between mb-1 text-[11px] text-brand-600 dark:text-brand-400 font-bold">
               <span>{hoveredPoint.point.docName}</span>
-              <span className="text-slate-400">Chunk {hoveredPoint.point.chunk.chunkIndex}</span>
+              <span className="text-slate-500 dark:text-slate-400">Chunk {hoveredPoint.point.chunk.chunkIndex}</span>
             </div>
-            <p className="text-slate-300 line-clamp-3 font-sans leading-relaxed">
+            <p className="text-slate-800 dark:text-slate-300 line-clamp-3 font-sans leading-relaxed">
               {hoveredPoint.point.chunk.text}
             </p>
-            <div className="mt-1.5 pt-1.5 border-t border-slate-800 text-[10px] text-slate-500 flex justify-between">
+            <div className="mt-1.5 pt-1.5 border-t border-slate-200 dark:border-slate-800 text-[10px] text-slate-500 flex justify-between">
               <span>Click point to inspect</span>
               <span>~{hoveredPoint.point.chunk.tokenCountEstimate} tokens</span>
             </div>
           </div>
         )}
 
-        <div className="absolute bottom-3 left-3 bg-slate-950/80 border border-slate-800/80 rounded-lg px-3 py-1.5 backdrop-blur-md flex items-center space-x-3 text-[11px]">
+        <div className="absolute bottom-2.5 left-2.5 max-w-[calc(100%-1.25rem)] bg-white/95 dark:bg-slate-950/85 border border-slate-200 dark:border-slate-800/80 rounded-lg px-2.5 py-1.5 backdrop-blur-md flex flex-wrap items-center gap-2 text-[11px] shadow-sm">
           {Array.from(docColorMap.entries()).map(([name, color]) => (
             <div key={name} className="flex items-center space-x-1.5">
-              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }} />
-              <span className="text-slate-300 font-mono truncate max-w-[120px]">{name}</span>
+              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+              <span className="text-slate-700 dark:text-slate-300 font-mono truncate max-w-[100px] sm:max-w-[140px]">{name}</span>
             </div>
           ))}
-          <span className="text-[10px] text-slate-500 font-mono pl-2 border-l border-slate-800">
+          <span className="text-[10px] text-slate-500 font-mono hidden sm:inline pl-2 border-l border-slate-200 dark:border-slate-800">
             {isBoxSelectMode
               ? 'Drag to box-select cluster points'
               : viewMode === '3D'
               ? 'Drag to rotate 3D orbit (Shift+drag to box select)'
-              : `Pan & hover to explore (${projectionMethod.toUpperCase()}, Shift+drag to box select)`}
+              : `Pan & hover to explore (${projectionMethod.toUpperCase()})`}
           </span>
           {selectedChunkIds.size > 0 && (
-            <span className="text-[10px] text-brand-300 font-mono pl-2 border-l border-slate-800">
-              {selectedChunkIds.size} chunks ({selectedDocCount} docs) selected
+            <span className="text-[10px] text-brand-600 dark:text-brand-300 font-mono pl-2 border-l border-slate-200 dark:border-slate-800">
+              {selectedChunkIds.size} chunks selected
             </span>
           )}
         </div>

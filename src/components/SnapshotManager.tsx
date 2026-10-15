@@ -98,42 +98,43 @@ export const SnapshotManager: React.FC<SnapshotManagerProps> = ({
   };
 
   return (
-    <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 backdrop-blur-sm">
+    <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-6 backdrop-blur-sm shadow-xs">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-2">
-          <FolderDown className="w-5 h-5 text-brand-400" />
-          <h2 className="text-base font-semibold text-white">Index Snapshots & Persistence</h2>
+          <FolderDown className="w-5 h-5 text-brand-500 dark:text-brand-400" />
+          <h2 className="text-base font-semibold text-slate-900 dark:text-white">Index Snapshots & Persistence</h2>
         </div>
-        <span className="text-xs font-mono text-slate-400 bg-slate-800/80 px-2.5 py-1 rounded-md border border-slate-700/60">
+        <span className="text-xs font-mono text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1 rounded-md border border-slate-200 dark:border-slate-700/60">
           .vlws &amp; .vlite
         </span>
       </div>
 
-      <p className="text-xs text-slate-400 mb-4 leading-relaxed">
+      <p className="text-xs text-slate-600 dark:text-slate-400 mb-4 leading-relaxed">
         Export your indexed vectors, graph topology, and document chunks into a portable snapshot file. Binary export (.vlws) is ~4x smaller and faster than JSON.
       </p>
 
       {/* Notifications */}
       {successMsg && (
-        <div className="mb-3 p-3 rounded-lg bg-brand-950/60 border border-brand-800/60 text-xs text-brand-300 flex items-center space-x-2 font-mono">
-          <Check className="w-4 h-4 text-brand-400 shrink-0" />
+        <div className="mb-3 p-3 rounded-lg bg-brand-50 dark:bg-brand-950/60 border border-brand-200 dark:border-brand-800/60 text-xs text-brand-700 dark:text-brand-300 flex items-center space-x-2 font-mono">
+          <Check className="w-4 h-4 text-brand-500 dark:text-brand-400 shrink-0" />
           <span>{successMsg}</span>
         </div>
       )}
       {errorMsg && (
-        <div className="mb-3 p-3 rounded-lg bg-red-950/60 border border-red-800/60 text-xs text-red-300 flex items-center space-x-2 font-mono">
-          <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+        <div className="mb-3 p-3 rounded-lg bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-800/60 text-xs text-red-600 dark:text-red-300 flex items-center space-x-2 font-mono">
+          <AlertCircle className="w-4 h-4 text-red-500 dark:text-red-400 shrink-0" />
           <span>{errorMsg}</span>
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-3">
+      {/* Symmetrical 2x2 Action Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-3">
         {/* Binary Export Button */}
         <button
           type="button"
           disabled={hnsw.size === 0}
           onClick={handleBinaryExport}
-          className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-medium text-xs transition-colors border border-brand-500 disabled:opacity-50"
+          className="flex items-center justify-center space-x-2 px-3 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-medium text-xs transition-colors border border-brand-500 shadow-xs disabled:opacity-50"
         >
           <Download className="w-4 h-4 text-white" />
           <span>Export Binary (.vlws)</span>
@@ -150,9 +151,9 @@ export const SnapshotManager: React.FC<SnapshotManagerProps> = ({
         <button
           type="button"
           onClick={() => binaryFileInputRef.current?.click()}
-          className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-medium text-xs transition-colors border border-slate-700"
+          className="flex items-center justify-center space-x-2 px-3 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-medium text-xs transition-colors border border-slate-300 dark:border-slate-700 shadow-xs"
         >
-          <Upload className="w-4 h-4 text-brand-400" />
+          <Upload className="w-4 h-4 text-brand-500 dark:text-brand-400" />
           <span>Import Binary (.vlws)</span>
         </button>
 
@@ -161,9 +162,9 @@ export const SnapshotManager: React.FC<SnapshotManagerProps> = ({
           type="button"
           disabled={hnsw.size === 0}
           onClick={handleExport}
-          className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-medium text-xs transition-colors border border-slate-700 disabled:opacity-50"
+          className="flex items-center justify-center space-x-2 px-3 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-medium text-xs transition-colors border border-slate-300 dark:border-slate-700 shadow-xs disabled:opacity-50"
         >
-          <Download className="w-4 h-4 text-slate-400" />
+          <Download className="w-4 h-4 text-slate-500 dark:text-slate-400" />
           <span>Export JSON (.vlite)</span>
         </button>
 
@@ -178,20 +179,25 @@ export const SnapshotManager: React.FC<SnapshotManagerProps> = ({
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-medium text-xs transition-colors border border-slate-700"
+          className="flex items-center justify-center space-x-2 px-3 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-medium text-xs transition-colors border border-slate-300 dark:border-slate-700 shadow-xs"
         >
-          <Upload className="w-4 h-4 text-indigo-400" />
+          <Upload className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
           <span>Import JSON (.vlite)</span>
         </button>
+      </div>
 
-        {/* Clear Database Button */}
+      {/* Action Footer: Status & Reset */}
+      <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-slate-800/80">
+        <span className="text-[11px] font-mono text-slate-500">
+          Index status: {hnsw.size} vectors • {chunks.length} chunks
+        </span>
         <button
           type="button"
           disabled={hnsw.size === 0 && chunks.length === 0}
           onClick={onClearAll}
-          className="ml-auto flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-red-950/40 hover:bg-red-900/60 text-red-300 font-medium text-xs transition-colors border border-red-800/50 disabled:opacity-40"
+          className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/60 text-red-600 dark:text-red-300 font-medium text-xs transition-colors border border-red-200 dark:border-red-800/50 disabled:opacity-40"
         >
-          <Trash2 className="w-3.5 h-3.5 text-red-400" />
+          <Trash2 className="w-3.5 h-3.5 text-red-500 dark:text-red-400" />
           <span>Reset All</span>
         </button>
       </div>

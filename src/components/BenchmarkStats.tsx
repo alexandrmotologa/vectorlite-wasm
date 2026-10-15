@@ -123,19 +123,19 @@ export const BenchmarkStats: React.FC<BenchmarkStatsProps> = ({
   };
 
   return (
-    <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 backdrop-blur-sm">
+    <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-6 backdrop-blur-sm shadow-xs">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div className="flex items-center space-x-2">
-          <Activity className="w-5 h-5 text-brand-400" />
-          <h2 className="text-base font-semibold text-white">Engine Performance & Micro-Benchmarks</h2>
+          <Activity className="w-5 h-5 text-brand-500 dark:text-brand-400" />
+          <h2 className="text-base font-semibold text-slate-900 dark:text-white">Engine Performance & Micro-Benchmarks</h2>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             disabled={isRunning || hnsw.size === 0}
             onClick={runRecallAudit}
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-indigo-300 hover:text-indigo-200 transition-colors border border-slate-700 disabled:opacity-50"
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-medium text-indigo-700 dark:text-indigo-300 transition-colors border border-slate-300 dark:border-slate-700 shadow-xs disabled:opacity-50"
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
             <span>Recall@{10} Audit</span>
@@ -145,7 +145,7 @@ export const BenchmarkStats: React.FC<BenchmarkStatsProps> = ({
             type="button"
             disabled={isRunning || hnsw.size === 0}
             onClick={runBenchmark}
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-brand-300 hover:text-brand-200 transition-colors border border-slate-700 disabled:opacity-50"
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-medium text-brand-700 dark:text-brand-300 transition-colors border border-slate-300 dark:border-slate-700 shadow-xs disabled:opacity-50"
           >
             <Play className="w-3.5 h-3.5 fill-current" />
             <span>{isRunning ? 'Benchmarking...' : 'Run 100-Query Test'}</span>
@@ -154,13 +154,13 @@ export const BenchmarkStats: React.FC<BenchmarkStatsProps> = ({
       </div>
 
       {/* Grid Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
-        <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
-          <div className="flex items-center space-x-1.5 text-slate-500 mb-1">
-            <Gauge className="w-3.5 h-3.5 text-brand-400" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs font-mono">
+        <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-2xs">
+          <div className="flex items-center space-x-1.5 text-slate-600 dark:text-slate-500 mb-1">
+            <Gauge className="w-3.5 h-3.5 text-brand-500 dark:text-brand-400" />
             <span>Search Latency</span>
           </div>
-          <span className="text-sm font-bold text-white">
+          <span className="text-sm font-bold text-slate-900 dark:text-white">
             {lastLatencyMs !== null ? `${lastLatencyMs.toFixed(2)} ms` : '—'}
           </span>
           <span className="text-[10px] text-slate-500 block mt-0.5">
@@ -168,20 +168,20 @@ export const BenchmarkStats: React.FC<BenchmarkStatsProps> = ({
           </span>
         </div>
 
-        <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
-          <div className="flex items-center space-x-1.5 text-slate-500 mb-1">
-            <Cpu className="w-3.5 h-3.5 text-indigo-400" />
+        <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-2xs">
+          <div className="flex items-center space-x-1.5 text-slate-600 dark:text-slate-500 mb-1">
+            <Cpu className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
             <span>HNSW Parameters</span>
           </div>
-          <span className="text-sm font-bold text-white">
+          <span className="text-sm font-bold text-slate-900 dark:text-white">
             M={hnsw.M} • M0={hnsw.M0}
           </span>
           <span className="text-[10px] text-slate-500 block mt-0.5">efConst: {hnsw.efConstruction}</span>
           {onEfSearchChange && (
-            <div className="mt-2 pt-2 border-t border-slate-800">
+            <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-800">
               <div className="flex items-center justify-between text-[10px]">
-                <span className="text-slate-400">efSearch:</span>
-                <span className="text-brand-300 font-bold">{hnsw.efSearch}</span>
+                <span className="text-slate-600 dark:text-slate-400">efSearch:</span>
+                <span className="text-brand-600 dark:text-brand-300 font-bold">{hnsw.efSearch}</span>
               </div>
               <input
                 type="range" min={8} max={256} step={8}
@@ -189,7 +189,7 @@ export const BenchmarkStats: React.FC<BenchmarkStatsProps> = ({
                 onChange={(e) => onEfSearchChange(Number(e.target.value))}
                 className="w-full mt-1 accent-brand-500 h-1"
               />
-              <div className="flex justify-between text-[9px] text-slate-600 mt-0.5">
+              <div className="flex justify-between text-[9px] text-slate-500 dark:text-slate-600 mt-0.5">
                 <span>Fast (8)</span>
                 <span>Accurate (256)</span>
               </div>
@@ -197,25 +197,25 @@ export const BenchmarkStats: React.FC<BenchmarkStatsProps> = ({
           )}
         </div>
 
-        <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
-          <div className="flex items-center space-x-1.5 text-slate-500 mb-1">
-            <Zap className="w-3.5 h-3.5 text-amber-400" />
+        <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-2xs">
+          <div className="flex items-center space-x-1.5 text-slate-600 dark:text-slate-500 mb-1">
+            <Zap className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
             <span>RAM Footprint</span>
           </div>
-          <span className="text-sm font-bold text-white">
+          <span className="text-sm font-bold text-slate-900 dark:text-white">
             {totalActiveKb > 0 ? `${totalActiveKb} KB` : 'Minimal'}
           </span>
-          <span className="text-[10px] text-brand-400 block mt-0.5">
+          <span className="text-[10px] text-brand-600 dark:text-brand-400 block mt-0.5 font-semibold">
             {savingsPercent > 0 ? `-${savingsPercent}% via ${quantizationMode.toUpperCase()}` : 'Unquantized F32'}
           </span>
         </div>
 
-        <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
-          <div className="flex items-center space-x-1.5 text-slate-500 mb-1">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+        <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-2xs">
+          <div className="flex items-center space-x-1.5 text-slate-600 dark:text-slate-500 mb-1">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
             <span>Indexed Chunks</span>
           </div>
-          <span className="text-sm font-bold text-white">
+          <span className="text-sm font-bold text-slate-900 dark:text-white">
             {hnsw.size} vectors
           </span>
           <span className="text-[10px] text-slate-500 block mt-0.5">
@@ -225,13 +225,13 @@ export const BenchmarkStats: React.FC<BenchmarkStatsProps> = ({
       </div>
 
       {/* Vector Quantization Architecture Comparison */}
-      <div className="mt-4 p-4 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 mb-3 border-b border-slate-850">
+      <div className="mt-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 font-mono text-xs shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 mb-3 border-b border-slate-200 dark:border-slate-850">
           <div className="flex items-center space-x-2">
-            <HardDrive className="w-4 h-4 text-brand-400" />
-            <span className="text-slate-200 font-semibold">Vector Quantization & Memory Compaction</span>
+            <HardDrive className="w-4 h-4 text-brand-500 dark:text-brand-400" />
+            <span className="text-slate-900 dark:text-slate-200 font-semibold">Vector Quantization & Memory Compaction</span>
           </div>
-          <div className="flex items-center space-x-1 bg-slate-900 p-1 rounded-lg border border-slate-800">
+          <div className="flex items-center space-x-1 bg-white dark:bg-slate-900 p-1 rounded-lg border border-slate-200 dark:border-slate-800">
             <button
               type="button"
               onClick={() => {
@@ -240,8 +240,8 @@ export const BenchmarkStats: React.FC<BenchmarkStatsProps> = ({
               }}
               className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
                 quantizationMode === 'f32'
-                  ? 'bg-slate-800 text-brand-300 font-semibold'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-slate-100 dark:bg-slate-800 text-brand-600 dark:text-brand-300 font-bold shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               Float32 (100%)
@@ -254,8 +254,8 @@ export const BenchmarkStats: React.FC<BenchmarkStatsProps> = ({
               }}
               className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
                 quantizationMode === 'sq8'
-                  ? 'bg-slate-800 text-brand-300 font-semibold'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-slate-100 dark:bg-slate-800 text-brand-600 dark:text-brand-300 font-bold shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               Int8 SQ8 (-75%)
@@ -268,8 +268,8 @@ export const BenchmarkStats: React.FC<BenchmarkStatsProps> = ({
               }}
               className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
                 quantizationMode === 'bq'
-                  ? 'bg-slate-800 text-brand-300 font-semibold'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-slate-100 dark:bg-slate-800 text-brand-600 dark:text-brand-300 font-bold shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               1-Bit BQ (-96%)
@@ -281,18 +281,18 @@ export const BenchmarkStats: React.FC<BenchmarkStatsProps> = ({
           <div
             className={`p-3 rounded-lg border transition-all ${
               quantizationMode === 'f32'
-                ? 'bg-slate-900/90 border-brand-500/50'
-                : 'bg-slate-900/30 border-slate-800/80 opacity-70'
+                ? 'bg-white dark:bg-slate-900/90 border-brand-500/50 shadow-xs'
+                : 'bg-white/70 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800/80 opacity-80'
             }`}
           >
             <div className="flex items-center justify-between mb-1">
-              <span className="font-bold text-white">Full Float32</span>
-              <span className="text-[10px] text-slate-400">1,536 B / vec</span>
+              <span className="font-bold text-slate-900 dark:text-white">Full Float32</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400">1,536 B / vec</span>
             </div>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-slate-600 dark:text-slate-400">
               Complete floating-point fidelity without loss. Baseline 4 bytes per dimension.
             </p>
-            <div className="mt-2 text-[10px] text-brand-300">
+            <div className="mt-2 text-[10px] text-brand-600 dark:text-brand-300 font-semibold">
               Est. Memory: {Math.round(rawVectorBytes / 1024)} KB for {hnsw.size} vectors
             </div>
           </div>
@@ -300,18 +300,18 @@ export const BenchmarkStats: React.FC<BenchmarkStatsProps> = ({
           <div
             className={`p-3 rounded-lg border transition-all ${
               quantizationMode === 'sq8'
-                ? 'bg-slate-900/90 border-brand-500/50'
-                : 'bg-slate-900/30 border-slate-800/80 opacity-70'
+                ? 'bg-white dark:bg-slate-900/90 border-brand-500/50 shadow-xs'
+                : 'bg-white/70 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800/80 opacity-80'
             }`}
           >
             <div className="flex items-center justify-between mb-1">
-              <span className="font-bold text-brand-300">Scalar SQ8 (Int8)</span>
-              <span className="text-[10px] text-emerald-400">388 B / vec (-75%)</span>
+              <span className="font-bold text-brand-600 dark:text-brand-300">Scalar SQ8 (Int8)</span>
+              <span className="text-[10px] text-emerald-600 dark:text-emerald-400">388 B / vec (-75%)</span>
             </div>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-slate-600 dark:text-slate-400">
               Symmetric int8 scaling preserving ~99.2% cosine correlation with 4x memory savings.
             </p>
-            <div className="mt-2 text-[10px] text-emerald-400">
+            <div className="mt-2 text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
               Est. Memory: {Math.round(sq8VectorBytes / 1024)} KB for {hnsw.size} vectors
             </div>
           </div>
@@ -319,18 +319,18 @@ export const BenchmarkStats: React.FC<BenchmarkStatsProps> = ({
           <div
             className={`p-3 rounded-lg border transition-all ${
               quantizationMode === 'bq'
-                ? 'bg-slate-900/90 border-brand-500/50'
-                : 'bg-slate-900/30 border-slate-800/80 opacity-70'
+                ? 'bg-white dark:bg-slate-900/90 border-brand-500/50 shadow-xs'
+                : 'bg-white/70 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800/80 opacity-80'
             }`}
           >
             <div className="flex items-center justify-between mb-1">
-              <span className="font-bold text-indigo-300">Binary BQ (1-Bit)</span>
-              <span className="text-[10px] text-indigo-400">48 B / vec (-96.8%)</span>
+              <span className="font-bold text-indigo-600 dark:text-indigo-300">Binary BQ (1-Bit)</span>
+              <span className="text-[10px] text-indigo-600 dark:text-indigo-400">48 B / vec (-96.8%)</span>
             </div>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-slate-600 dark:text-slate-400">
               Hyperplane sign packing bitwise distance (POPCNT XOR). Extreme scale retrieval.
             </p>
-            <div className="mt-2 text-[10px] text-indigo-400">
+            <div className="mt-2 text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold">
               Est. Memory: {Math.round(bqVectorBytes / 1024)} KB for {hnsw.size} vectors
             </div>
           </div>
@@ -339,53 +339,53 @@ export const BenchmarkStats: React.FC<BenchmarkStatsProps> = ({
 
       {/* Benchmark Results Card */}
       {benchResult && (
-        <div className="mt-4 p-4 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs">
-          <div className="flex items-center justify-between mb-3 text-slate-400 pb-2 border-b border-slate-850">
-            <span className="text-brand-300 font-bold">100-Query Latency Distribution</span>
+        <div className="mt-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 font-mono text-xs shadow-xs">
+          <div className="flex items-center justify-between mb-3 text-slate-600 dark:text-slate-400 pb-2 border-b border-slate-200 dark:border-slate-850">
+            <span className="text-brand-600 dark:text-brand-300 font-bold">100-Query Latency Distribution</span>
             <span className="text-slate-500">Throughput: {benchResult.qps.toLocaleString()} QPS</span>
           </div>
 
-          <div className="grid grid-cols-4 gap-2 text-center">
-            <div className="bg-slate-900/60 p-2 rounded-lg border border-slate-800">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+            <div className="bg-white dark:bg-slate-900/60 p-2 rounded-lg border border-slate-200 dark:border-slate-800 shadow-2xs">
               <span className="text-[10px] text-slate-500 block">Avg</span>
-              <span className="text-white font-bold">{benchResult.avgLatencyMs.toFixed(3)} ms</span>
+              <span className="text-slate-900 dark:text-white font-bold">{benchResult.avgLatencyMs.toFixed(3)} ms</span>
             </div>
-            <div className="bg-slate-900/60 p-2 rounded-lg border border-slate-800">
+            <div className="bg-white dark:bg-slate-900/60 p-2 rounded-lg border border-slate-200 dark:border-slate-800 shadow-2xs">
               <span className="text-[10px] text-slate-500 block">p50</span>
-              <span className="text-brand-300 font-bold">{benchResult.p50Ms.toFixed(3)} ms</span>
+              <span className="text-brand-600 dark:text-brand-300 font-bold">{benchResult.p50Ms.toFixed(3)} ms</span>
             </div>
-            <div className="bg-slate-900/60 p-2 rounded-lg border border-slate-800">
+            <div className="bg-white dark:bg-slate-900/60 p-2 rounded-lg border border-slate-200 dark:border-slate-800 shadow-2xs">
               <span className="text-[10px] text-slate-500 block">p95</span>
-              <span className="text-amber-300 font-bold">{benchResult.p95Ms.toFixed(3)} ms</span>
+              <span className="text-amber-600 dark:text-amber-300 font-bold">{benchResult.p95Ms.toFixed(3)} ms</span>
             </div>
-            <div className="bg-slate-900/60 p-2 rounded-lg border border-slate-800">
+            <div className="bg-white dark:bg-slate-900/60 p-2 rounded-lg border border-slate-200 dark:border-slate-800 shadow-2xs">
               <span className="text-[10px] text-slate-500 block">p99</span>
-              <span className="text-red-400 font-bold">{benchResult.p99Ms.toFixed(3)} ms</span>
+              <span className="text-red-600 dark:text-red-400 font-bold">{benchResult.p99Ms.toFixed(3)} ms</span>
             </div>
           </div>
         </div>
       )}
 
       {recallResult && (
-        <div className="mt-3 p-3 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs flex items-center justify-between">
+        <div className="mt-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 font-mono text-xs flex items-center justify-between shadow-xs">
           <div className="flex items-center space-x-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            <span className="text-white">
+            <CheckCircle2 className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
+            <span className="text-slate-900 dark:text-white">
               Recall@{recallResult.k}:{' '}
               <strong
                 className={
                   recallResult.recallAtK >= 95
-                    ? 'text-emerald-400'
+                    ? 'text-emerald-600 dark:text-emerald-400'
                     : recallResult.recallAtK >= 80
-                    ? 'text-amber-400'
-                    : 'text-red-400'
+                    ? 'text-amber-600 dark:text-amber-400'
+                    : 'text-red-600 dark:text-red-400'
                 }
               >
                 {recallResult.recallAtK}%
               </strong>
             </span>
           </div>
-          <span className="text-slate-500">HNSW vs Brute Force ({recallResult.checked} queries)</span>
+          <span className="text-slate-500 text-[11px]">HNSW vs Brute Force ({recallResult.checked} queries)</span>
         </div>
       )}
     </div>

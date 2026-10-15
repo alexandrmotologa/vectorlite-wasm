@@ -54,12 +54,12 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   };
 
   return (
-    <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 backdrop-blur-sm">
+    <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-6 backdrop-blur-sm shadow-xs">
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Search Input Bar */}
         <div className="relative flex items-center">
-          <div className="absolute left-4 text-slate-400 pointer-events-none">
-            <Search className="w-5 h-5 text-brand-400" />
+          <div className="absolute left-3.5 sm:left-4 text-slate-400 pointer-events-none">
+            <Search className="w-5 h-5 text-brand-500 dark:text-brand-400" />
           </div>
           <input
             type="text"
@@ -72,13 +72,13 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                 ? 'Load a document or sample dataset above to start searching...'
                 : 'Search concepts, architecture patterns, or exact keywords...'
             }
-            className="w-full pl-12 pr-32 py-3.5 bg-slate-950/80 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 font-sans text-sm transition-all"
+            className="w-full pl-11 sm:pl-12 pr-24 sm:pr-32 py-3 sm:py-3.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-700/80 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 font-sans text-sm transition-all shadow-xs"
           />
 
           <button
             type="submit"
             disabled={isSearching || !query.trim() || totalVectors === 0}
-            className="absolute right-2 px-4 py-2 rounded-lg bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-400 hover:to-brand-500 text-slate-950 font-semibold text-xs transition-all shadow-md shadow-brand-500/20 disabled:opacity-50 disabled:pointer-events-none flex items-center space-x-1.5"
+            className="absolute right-1.5 sm:right-2 px-3 sm:px-4 py-2 rounded-lg bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-400 hover:to-brand-500 text-slate-950 font-semibold text-xs transition-all shadow-md shadow-brand-500/20 disabled:opacity-50 disabled:pointer-events-none flex items-center space-x-1.5"
           >
             {isSearching ? (
               <span>Searching...</span>
@@ -91,8 +91,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           </button>
 
           {showHistory && searchHistory.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-1 z-20 bg-slate-950 border border-slate-800 rounded-xl shadow-2xl max-h-48 overflow-y-auto">
-              <div className="p-2 text-[10px] text-slate-500 font-mono border-b border-slate-800 flex justify-between">
+            <div className="absolute top-full left-0 right-0 mt-1 z-20 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl max-h-48 overflow-y-auto">
+              <div className="p-2 text-[10px] text-slate-500 font-mono border-b border-slate-200 dark:border-slate-800 flex justify-between">
                 <span className="flex items-center space-x-1">
                   <History className="w-3 h-3 text-slate-400 inline" />
                   <span>Recent Searches</span>
@@ -100,7 +100,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                 <button
                   type="button"
                   onClick={() => { setSearchHistory([]); localStorage.removeItem('vlw_search_history'); }}
-                  className="text-slate-500 hover:text-red-400"
+                  className="text-slate-500 hover:text-red-500"
                 >
                   Clear
                 </button>
@@ -114,10 +114,10 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                     setShowHistory(false);
                     onSearch(h.query, h.mode, topK, selectedDoc || null);
                   }}
-                  className="w-full text-left px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-900 flex items-center justify-between"
+                  className="w-full text-left px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900 flex items-center justify-between"
                 >
                   <span className="truncate">{h.query}</span>
-                  <span className="text-[10px] text-slate-600 shrink-0 ml-2">{h.mode}</span>
+                  <span className="text-[10px] text-slate-500 shrink-0 ml-2">{h.mode}</span>
                 </button>
               ))}
             </div>
@@ -127,14 +127,14 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         {/* Query Controls: Mode Toggle & Top-K */}
         <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
           {/* Search Mode Toggles */}
-          <div className="flex items-center space-x-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+          <div className="flex flex-wrap items-center gap-1 bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-slate-800">
             <button
               type="button"
               onClick={() => setMode('hybrid')}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg font-medium transition-all ${
+              className={`flex items-center space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg font-medium transition-all ${
                 mode === 'hybrid'
-                  ? 'bg-brand-500 text-slate-950 font-semibold shadow-sm'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-brand-500 text-slate-950 font-bold shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <Sparkles className="w-3.5 h-3.5" />
@@ -144,10 +144,10 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             <button
               type="button"
               onClick={() => setMode('dense')}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg font-medium transition-all ${
+              className={`flex items-center space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg font-medium transition-all ${
                 mode === 'dense'
-                  ? 'bg-brand-500 text-slate-950 font-semibold shadow-sm'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-brand-500 text-slate-950 font-bold shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <Compass className="w-3.5 h-3.5" />
@@ -157,10 +157,10 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             <button
               type="button"
               onClick={() => setMode('sparse')}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg font-medium transition-all ${
+              className={`flex items-center space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg font-medium transition-all ${
                 mode === 'sparse'
-                  ? 'bg-brand-500 text-slate-950 font-semibold shadow-sm'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-brand-500 text-slate-950 font-bold shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <Tag className="w-3.5 h-3.5" />
@@ -169,21 +169,21 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           </div>
 
           {/* Filters & Latency Controls */}
-          <div className="flex flex-wrap items-center gap-3 font-mono">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 font-mono">
             {/* Document Scoping Filter */}
             {availableDocuments.length > 0 && (
-              <div className="flex items-center space-x-2 text-slate-400 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800">
-                <Filter className="w-3.5 h-3.5 text-brand-400" />
+              <div className="flex items-center space-x-2 text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-950 px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800">
+                <Filter className="w-3.5 h-3.5 text-brand-500 dark:text-brand-400" />
                 <span>Scope:</span>
                 <select
                   value={selectedDoc}
                   onChange={(e) => setSelectedDoc(e.target.value)}
-                  className="bg-transparent text-white font-semibold focus:outline-none cursor-pointer max-w-[150px] truncate"
+                  className="bg-transparent text-slate-900 dark:text-white font-semibold focus:outline-none cursor-pointer max-w-[130px] sm:max-w-[150px] truncate"
                   title="Filter search to a specific document"
                 >
-                  <option value="" className="bg-slate-900 text-white">All Documents</option>
+                  <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">All Documents</option>
                   {availableDocuments.map((doc) => (
-                    <option key={doc} value={doc} className="bg-slate-900 text-white">
+                    <option key={doc} value={doc} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
                       {doc}
                     </option>
                   ))}
@@ -192,24 +192,24 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             )}
 
             {/* Top-K Selector */}
-            <div className="flex items-center space-x-2 text-slate-400 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800">
-              <Sliders className="w-3.5 h-3.5 text-slate-400" />
+            <div className="flex items-center space-x-2 text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-950 px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800">
+              <Sliders className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
               <span>Top-K:</span>
               <select
                 value={topK}
                 onChange={(e) => setTopK(Number(e.target.value))}
-                className="bg-transparent text-white font-semibold focus:outline-none cursor-pointer"
+                className="bg-transparent text-slate-900 dark:text-white font-semibold focus:outline-none cursor-pointer"
               >
-                <option value={3} className="bg-slate-900 text-white">3</option>
-                <option value={5} className="bg-slate-900 text-white">5</option>
-                <option value={10} className="bg-slate-900 text-white">10</option>
-                <option value={20} className="bg-slate-900 text-white">20</option>
+                <option value={3} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">3</option>
+                <option value={5} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">5</option>
+                <option value={10} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">10</option>
+                <option value={20} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">20</option>
               </select>
             </div>
 
             {queryLatencyMs !== null && (
-              <div className="px-2.5 py-1.5 rounded-xl bg-brand-950/60 border border-brand-800/40 text-brand-300 text-[11px] flex items-center space-x-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-brand-400 animate-pulse" />
+              <div className="px-2.5 py-1.5 rounded-xl bg-brand-50 dark:bg-brand-950/60 border border-brand-200 dark:border-brand-800/40 text-brand-700 dark:text-brand-300 text-[11px] flex items-center space-x-1.5 shadow-xs">
+                <span className="w-1.5 h-1.5 rounded-full bg-brand-500 dark:bg-brand-400 animate-pulse" />
                 <span>Latency: {queryLatencyMs.toFixed(2)} ms</span>
               </div>
             )}
@@ -217,14 +217,14 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         </div>
 
         {/* Quick Sample Queries */}
-        <div className="pt-2 flex items-center space-x-2 overflow-x-auto text-xs pb-1">
-          <span className="text-slate-500 shrink-0">Try queries:</span>
+        <div className="pt-2 flex flex-wrap items-center gap-1.5 text-xs">
+          <span className="text-slate-500 shrink-0 mr-1 text-[11px]">Try queries:</span>
           {SAMPLE_QUERIES.map((sq, i) => (
             <button
               key={i}
               type="button"
               onClick={() => handleSampleClick(sq)}
-              className="shrink-0 px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-slate-200 transition-colors"
+              className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-950 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors text-[11px]"
             >
               {sq}
             </button>

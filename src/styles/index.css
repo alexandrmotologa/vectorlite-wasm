@@ -72,10 +72,11 @@
 [data-theme="light"] .text-white { color: #0f172a !important; }
 [data-theme="light"] .text-slate-200 { color: #1e293b !important; }
 [data-theme="light"] .text-slate-300 { color: #334155 !important; }
-[data-theme="light"] .text-slate-400 { color: #64748b !important; }
-[data-theme="light"] .text-slate-500 { color: #94a3b8 !important; }
-[data-theme="light"] .text-slate-600 { color: #94a3b8 !important; }
+[data-theme="light"] .text-slate-400 { color: #475569 !important; }
+[data-theme="light"] .text-slate-500 { color: #475569 !important; }
+[data-theme="light"] .text-slate-600 { color: #334155 !important; }
 
+[data-theme="light"] .placeholder-slate-400::placeholder { color: #94a3b8 !important; }
 [data-theme="light"] .placeholder-slate-500::placeholder { color: #94a3b8 !important; }
 
 /* Canvas background */
@@ -86,7 +87,7 @@
 [data-theme="light"] option { color: #0f172a !important; }
 
 /* Gradient overrides */
-[data-theme="light"] .from-slate-900 { --tw-gradient-from: #f8fafc !important; }
+[data-theme="light"] .from-slate-900 { --tw-gradient-from: #ffffff !important; }
 [data-theme="light"] .via-slate-900 { --tw-gradient-via: #f8fafc !important; }
 [data-theme="light"] .to-slate-950 { --tw-gradient-to: #f1f5f9 !important; }
 [data-theme="light"] .via-slate-900\/90 { --tw-gradient-via: rgba(248,250,252,0.9) !important; }
@@ -119,9 +120,13 @@
     overflow-x: hidden;
   }
 
-  body:has([data-theme="light"]) {
-    background-color: #ffffff;
-    color: #0f172a;
+  html.light,
+  html[data-theme="light"],
+  body:has([data-theme="light"]),
+  html.light body,
+  [data-theme="light"] body {
+    background-color: #f8fafc !important;
+    color: #0f172a !important;
   }
 
   /* Custom Scrollbar */

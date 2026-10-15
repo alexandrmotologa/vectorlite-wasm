@@ -51,6 +51,12 @@ export const App: React.FC = () => {
     return (localStorage.getItem('vlw_theme') as 'dark' | 'light') || 'dark';
   });
 
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.classList.toggle('light', theme === 'light');
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+  }, [theme]);
+
   const toggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark';
     setTheme(next);
@@ -650,29 +656,41 @@ export const App: React.FC = () => {
 
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 w-full">
         {/* Top Hero Pitch / Architecture Badge */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-900 to-slate-950 border border-slate-800">
+        <div className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl border transition-colors ${
+          theme === 'light'
+            ? 'bg-slate-50/90 border-slate-200 text-slate-800 shadow-xs'
+            : 'bg-slate-900/80 border-slate-800 text-slate-300'
+        }`}>
           <div className="space-y-1">
             <div className="flex items-center space-x-2">
               <span className="flex h-2 w-2 relative">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-500"></span>
               </span>
-              <span className="text-xs font-mono font-semibold text-brand-400 uppercase tracking-wider">
-                100% Client-Side WebAssembly & Generative RAG
+              <span className={`text-xs font-mono font-semibold uppercase tracking-wider ${
+                theme === 'light' ? 'text-brand-700' : 'text-brand-400'
+              }`}>
+                100% Client-Side WebAssembly &amp; Generative RAG
               </span>
             </div>
-            <p className="text-sm text-slate-300">
+            <p className={`text-sm ${
+              theme === 'light' ? 'text-slate-600' : 'text-slate-300'
+            }`}>
               Zero cloud latency, zero external API costs, zero data leakage. Embeddings, HNSW graph indexing, hardware SIMD math, SQ8/BQ memory quantization, and grounded local LLM synthesis run entirely in your browser.
             </p>
           </div>
 
           <div className="flex items-center space-x-2 shrink-0 text-xs font-mono">
-            <span className="px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 flex items-center space-x-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-brand-400" />
+            <span className={`px-3 py-1.5 rounded-xl border flex items-center space-x-1.5 ${
+              theme === 'light' ? 'bg-white border-slate-200 text-slate-700 shadow-xs' : 'bg-slate-950 border-slate-800 text-slate-300'
+            }`}>
+              <ShieldCheck className="w-3.5 h-3.5 text-brand-500" />
               <span>Offline Ready</span>
             </span>
-            <span className="px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 flex items-center space-x-1.5">
-              <Cpu className="w-3.5 h-3.5 text-indigo-400" />
+            <span className={`px-3 py-1.5 rounded-xl border flex items-center space-x-1.5 ${
+              theme === 'light' ? 'bg-white border-slate-200 text-slate-700 shadow-xs' : 'bg-slate-950 border-slate-800 text-slate-300'
+            }`}>
+              <Cpu className="w-3.5 h-3.5 text-indigo-500" />
               <span>128-bit SIMD</span>
             </span>
           </div>
@@ -766,6 +784,7 @@ export const App: React.FC = () => {
           chunksMap={chunksMap}
           queryVector={queryVector}
           searchResults={searchResults}
+          theme={theme}
           onSelectChunk={(chunk) => setInspectingItem({ chunk })}
         />
 

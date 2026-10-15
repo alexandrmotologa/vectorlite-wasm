@@ -57,11 +57,11 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-white flex items-center space-x-2">
-          <Sparkles className="w-4 h-4 text-brand-400" />
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-white flex items-center space-x-2">
+          <Sparkles className="w-4 h-4 text-brand-500 dark:text-brand-400" />
           <span>Top Matching Chunks ({results.length})</span>
         </h3>
-        <span className="text-xs font-mono text-slate-400">Ranked by Reciprocal Rank Fusion / Similarity</span>
+        <span className="text-xs font-mono text-slate-500 dark:text-slate-400">Ranked by Reciprocal Rank Fusion / Similarity</span>
       </div>
 
       <div className="grid grid-cols-1 gap-3.5">
@@ -74,20 +74,20 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
           return (
             <div
               key={res.id}
-              className="bg-slate-900/80 border border-slate-800 hover:border-slate-700/90 rounded-xl p-4 transition-all duration-200 group"
+              className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700/90 rounded-xl p-4 transition-all duration-200 group shadow-xs"
             >
               {/* Card Header: Rank, Document Info, Score Badge */}
               <div className="flex items-start justify-between gap-3 mb-2.5">
                 <div className="flex items-center space-x-2 flex-wrap gap-y-1">
-                  <span className="w-6 h-6 rounded-md bg-slate-800 flex items-center justify-center font-mono font-bold text-xs text-brand-400 border border-slate-700">
+                  <span className="w-6 h-6 rounded-md bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-mono font-bold text-xs text-brand-600 dark:text-brand-400 border border-slate-200 dark:border-slate-700">
                     #{idx + 1}
                   </span>
 
-                  <div className="flex items-center space-x-1.5 text-xs font-mono text-slate-300">
+                  <div className="flex items-center space-x-1.5 text-xs font-mono text-slate-700 dark:text-slate-300">
                     <FileText className="w-3.5 h-3.5 text-slate-400" />
-                    <span className="font-semibold text-white">{chunk.documentName}</span>
-                    <span className="text-slate-500">•</span>
-                    <span className="text-slate-400">
+                    <span className="font-semibold text-slate-900 dark:text-white">{chunk.documentName}</span>
+                    <span className="text-slate-400 dark:text-slate-500">•</span>
+                    <span className="text-slate-500 dark:text-slate-400">
                       Chunk {chunk.chunkIndex} of {chunk.totalChunks}
                     </span>
                   </div>
@@ -98,9 +98,9 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
                   {res.denseScore !== undefined && (
                     <span
                       title={`Dense similarity: ${res.denseScore.toFixed(3)} (Rank #${res.denseRank})`}
-                      className="hidden sm:flex items-center space-x-1 text-[10px] px-2 py-0.5 rounded-full bg-slate-950 text-slate-300 border border-slate-800"
+                      className="hidden sm:flex items-center space-x-1 text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-950 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800"
                     >
-                      <Compass className="w-3 h-3 text-brand-400" />
+                      <Compass className="w-3 h-3 text-brand-500 dark:text-brand-400" />
                       <span>Dense: {Math.round(res.denseScore * 100)}%</span>
                     </span>
                   )}
@@ -108,27 +108,27 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
                   {res.sparseScore !== undefined && (
                     <span
                       title={`BM25 Score: ${res.sparseScore.toFixed(2)} (Rank #${res.sparseRank})`}
-                      className="hidden sm:flex items-center space-x-1 text-[10px] px-2 py-0.5 rounded-full bg-slate-950 text-slate-300 border border-slate-800"
+                      className="hidden sm:flex items-center space-x-1 text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-950 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800"
                     >
-                      <Tag className="w-3 h-3 text-indigo-400" />
+                      <Tag className="w-3 h-3 text-indigo-500 dark:text-indigo-400" />
                       <span>BM25: {res.sparseScore.toFixed(1)}</span>
                     </span>
                   )}
 
                   {/* Main Combined Score Badge */}
-                  <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-brand-950/80 text-brand-300 border border-brand-800/60 flex items-center space-x-1">
+                  <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-brand-50 dark:bg-brand-950/80 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-800/60 flex items-center space-x-1 shadow-2xs">
                     <span>{scorePercent}% match</span>
                   </span>
                 </div>
               </div>
 
               {/* Chunk Text Body with Highlight */}
-              <div className="text-xs text-slate-300 leading-relaxed font-mono bg-slate-950/60 p-3 rounded-lg border border-slate-850 line-clamp-4">
+              <div className="text-xs text-slate-800 dark:text-slate-300 leading-relaxed font-mono bg-slate-50 dark:bg-slate-950/60 p-3 rounded-lg border border-slate-200 dark:border-slate-850 line-clamp-4">
                 {renderHighlightedText(chunk.text, query)}
               </div>
 
               {/* Footer Actions */}
-              <div className="mt-3 flex items-center justify-between text-xs pt-2 border-t border-slate-800/50">
+              <div className="mt-3 flex items-center justify-between text-xs pt-2 border-t border-slate-200 dark:border-slate-800/50">
                 <span className="text-[11px] text-slate-500 font-mono">
                   ~{chunk.tokenCountEstimate} tokens ({chunk.text.length} chars)
                 </span>
@@ -138,10 +138,10 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
                     <button
                       type="button"
                       onClick={() => onFindSimilar(chunk)}
-                      className="flex items-center space-x-1 text-slate-400 hover:text-brand-300 px-2 py-1 rounded hover:bg-slate-800 transition-colors"
+                      className="flex items-center space-x-1 text-slate-600 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-300 px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                       title="Run search using this chunk's embedding vector as the query"
                     >
-                      <Compass className="w-3.5 h-3.5 text-brand-400" />
+                      <Compass className="w-3.5 h-3.5 text-brand-500 dark:text-brand-400" />
                       <span>Find Similar</span>
                     </button>
                   )}
@@ -149,12 +149,12 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
                   <button
                     type="button"
                     onClick={() => handleCopy(res.id, chunk.text)}
-                    className="flex items-center space-x-1 text-slate-400 hover:text-white px-2 py-1 rounded hover:bg-slate-800 transition-colors"
+                    className="flex items-center space-x-1 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                   >
                     {copiedId === res.id ? (
                       <>
-                        <Check className="w-3.5 h-3.5 text-brand-400" />
-                        <span className="text-brand-400">Copied</span>
+                        <Check className="w-3.5 h-3.5 text-brand-500 dark:text-brand-400" />
+                        <span className="text-brand-600 dark:text-brand-400 font-semibold">Copied</span>
                       </>
                     ) : (
                       <>
@@ -167,7 +167,7 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
                   <button
                     type="button"
                     onClick={() => onInspectChunk(chunk, res)}
-                    className="flex items-center space-x-1 text-brand-400 hover:text-brand-300 px-2 py-1 rounded hover:bg-brand-950/40 transition-colors"
+                    className="flex items-center space-x-1 text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 px-2 py-1 rounded hover:bg-brand-50 dark:hover:bg-brand-950/40 transition-colors font-medium"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
                     <span>Inspect Vector</span>
