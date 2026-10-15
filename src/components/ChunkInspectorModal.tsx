@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, FileText, Hash, Copy, Check, Binary, Compass } from 'lucide-react';
 import { TextChunk } from '../engine/chunker';
 import { HybridSearchResult } from '../engine/hybrid';
@@ -20,6 +20,14 @@ export const ChunkInspectorModal: React.FC<ChunkInspectorModalProps> = ({
 }) => {
   const [copiedText, setCopiedText] = useState(false);
   const [copiedVector, setCopiedVector] = useState(false);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose]);
 
   const handleCopyText = () => {
     navigator.clipboard.writeText(chunk.text);

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Sliders, Zap, Tag, Compass, Sparkles, Filter } from 'lucide-react';
+import { Search, Sliders, Zap, Tag, Compass, Sparkles, Filter, History } from 'lucide-react';
 
 export type SearchMode = 'hybrid' | 'dense' | 'sparse';
 
@@ -30,10 +30,21 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   const [mode, setMode] = useState<SearchMode>('hybrid');
   const [topK, setTopK] = useState(5);
   const [selectedDoc, setSelectedDoc] = useState<string>('');
+  const [searchHistory, setSearchHistory] = useState<Array<{ query: string; mode: SearchMode; timestamp: number }>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('vlw_search_history') || '[]');
+    } catch { return []; }
+  });
+  const [showHistory, setShowHistory] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
+    const newEntry = { query: query.trim(), mode, timestamp: Date.now() };
+    const updated = [newEntry, ...searchHistory.filter(h => h.query !== query.trim())].slice(0, 20);
+    setSearchHistory(updated);
+    localStorage.setItem('vlw_search_history', JSON.stringify(updated));
+    setShowHistory(false);
     onSearch(query.trim(), mode, topK, selectedDoc || null);
   };
 
@@ -54,6 +65,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onFocus={() => setShowHistory(true)}
+            onBlur={() => setTimeout(() => setShowHistory(false), 200)}
             placeholder={
               totalVectors === 0
                 ? 'Load a document or sample dataset above to start searching...'
@@ -76,6 +89,39 @@ export const SearchBar: React.FC<SearchBarProps> = ({
               </>
             )}
           </button>
+
+          {showHistory && searchHistory.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-1 z-20 bg-slate-950 border border-slate-800 rounded-xl shadow-2xl max-h-48 overflow-y-auto">
+              <div className="p-2 text-[10px] text-slate-500 font-mono border-b border-slate-800 flex justify-between">
+                <span className="flex items-center space-x-1">
+                  <History className="w-3 h-3 text-slate-400 inline" />
+                  <span>Recent Searches</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => { setSearchHistory([]); localStorage.removeItem('vlw_search_history'); }}
+                  className="text-slate-500 hover:text-red-400"
+                >
+                  Clear
+                </button>
+              </div>
+              {searchHistory.slice(0, 10).map((h, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => {
+                    setQuery(h.query);
+                    setShowHistory(false);
+                    onSearch(h.query, h.mode, topK, selectedDoc || null);
+                  }}
+                  className="w-full text-left px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-900 flex items-center justify-between"
+                >
+                  <span className="truncate">{h.query}</span>
+                  <span className="text-[10px] text-slate-600 shrink-0 ml-2">{h.mode}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Query Controls: Mode Toggle & Top-K */}

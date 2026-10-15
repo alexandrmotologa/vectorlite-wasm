@@ -7,6 +7,7 @@ interface BenchmarkStatsProps {
   lastLatencyMs: number | null;
   totalTokens: number;
   onSwitchQuantization?: (mode: 'f32' | 'sq8' | 'bq') => void;
+  onRunRecallAudit?: () => { recallAtK: number; hnswResults: string[]; bruteForceResults: string[]; k: number } | null;
 }
 
 interface BenchmarkResult {
@@ -27,6 +28,33 @@ export const BenchmarkStats: React.FC<BenchmarkStatsProps> = ({
   const [isRunning, setIsRunning] = useState(false);
   const [benchResult, setBenchResult] = useState<BenchmarkResult | null>(null);
   const [quantizationMode, setQuantizationMode] = useState<'f32' | 'sq8' | 'bq'>(hnsw.quantization || 'f32');
+  const [recallResult, setRecallResult] = useState<{ recallAtK: number; k: number; checked: number } | null>(null);
+
+  const runRecallAudit = () => {
+    if (hnsw.size === 0) return;
+    const dim = 384;
+    const k = Math.min(10, hnsw.size);
+    const queries = 20;
+    let totalRecall = 0;
+
+    for (let i = 0; i < queries; i++) {
+      const q = new Float32Array(dim);
+      for (let d = 0; d < dim; d++) q[d] = Math.sin(i * 13 + d * 0.7);
+
+      const hnswRes = hnsw.search(q, k);
+      const bfRes = hnsw.bruteForceSearch(q, k);
+
+      const bfIds = new Set(bfRes.map((r) => r.id));
+      const matches = hnswRes.filter((r) => bfIds.has(r.id)).length;
+      totalRecall += k > 0 ? matches / k : 1;
+    }
+
+    setRecallResult({
+      recallAtK: Math.round((totalRecall / queries) * 1000) / 10,
+      k,
+      checked: queries,
+    });
+  };
 
   // Estimate in-memory RAM size across quantization levels
   const vectorDim = 384;
@@ -100,15 +128,27 @@ export const BenchmarkStats: React.FC<BenchmarkStatsProps> = ({
           <h2 className="text-base font-semibold text-white">Engine Performance & Micro-Benchmarks</h2>
         </div>
 
-        <button
-          type="button"
-          disabled={isRunning || hnsw.size === 0}
-          onClick={runBenchmark}
-          className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-brand-300 hover:text-brand-200 transition-colors border border-slate-700 disabled:opacity-50"
-        >
-          <Play className="w-3.5 h-3.5 fill-current" />
-          <span>{isRunning ? 'Benchmarking...' : 'Run 100-Query Test'}</span>
-        </button>
+        <div className="flex items-center space-x-2">
+          <button
+            type="button"
+            disabled={isRunning || hnsw.size === 0}
+            onClick={runRecallAudit}
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-indigo-300 hover:text-indigo-200 transition-colors border border-slate-700 disabled:opacity-50"
+          >
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            <span>Recall@{10} Audit</span>
+          </button>
+
+          <button
+            type="button"
+            disabled={isRunning || hnsw.size === 0}
+            onClick={runBenchmark}
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-brand-300 hover:text-brand-200 transition-colors border border-slate-700 disabled:opacity-50"
+          >
+            <Play className="w-3.5 h-3.5 fill-current" />
+            <span>{isRunning ? 'Benchmarking...' : 'Run 100-Query Test'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Grid Stats */}
@@ -301,6 +341,29 @@ export const BenchmarkStats: React.FC<BenchmarkStatsProps> = ({
               <span className="text-red-400 font-bold">{benchResult.p99Ms.toFixed(3)} ms</span>
             </div>
           </div>
+        </div>
+      )}
+
+      {recallResult && (
+        <div className="mt-3 p-3 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <span className="text-white">
+              Recall@{recallResult.k}:{' '}
+              <strong
+                className={
+                  recallResult.recallAtK >= 95
+                    ? 'text-emerald-400'
+                    : recallResult.recallAtK >= 80
+                    ? 'text-amber-400'
+                    : 'text-red-400'
+                }
+              >
+                {recallResult.recallAtK}%
+              </strong>
+            </span>
+          </div>
+          <span className="text-slate-500">HNSW vs Brute Force ({recallResult.checked} queries)</span>
         </div>
       )}
     </div>

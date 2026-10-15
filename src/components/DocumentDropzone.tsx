@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { UploadCloud, FileText, BookOpen, Layers, AlertCircle, Loader2, Globe, Code2 } from 'lucide-react';
+import { UploadCloud, FileText, BookOpen, Layers, AlertCircle, Loader2, Globe, Code2, Sliders } from 'lucide-react';
 import { extractTextFromPDF } from '../engine/pdf_loader';
 
 interface DocumentDropzoneProps {
@@ -7,6 +7,10 @@ interface DocumentDropzoneProps {
   isProcessing: boolean;
   processStatus: string;
   batchProgress: { current: number; total: number } | null;
+  chunkSize?: number;
+  chunkOverlap?: number;
+  onChunkSizeChange?: (size: number) => void;
+  onChunkOverlapChange?: (overlap: number) => void;
 }
 
 export const DocumentDropzone: React.FC<DocumentDropzoneProps> = ({
@@ -14,12 +18,17 @@ export const DocumentDropzone: React.FC<DocumentDropzoneProps> = ({
   isProcessing,
   processStatus,
   batchProgress,
+  chunkSize,
+  chunkOverlap,
+  onChunkSizeChange,
+  onChunkOverlapChange,
 }) => {
   const [activeTab, setActiveTab] = useState<'upload' | 'url'>('upload');
   const [isDragOver, setIsDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [urlInput, setUrlInput] = useState('');
   const [isFetchingUrl, setIsFetchingUrl] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileProcess = async (file: File) => {
@@ -43,16 +52,19 @@ export const DocumentDropzone: React.FC<DocumentDropzoneProps> = ({
     setIsDragOver(false);
     if (isProcessing) return;
 
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const file = e.dataTransfer.files[0];
-      await handleFileProcess(file);
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      for (let i = 0; i < files.length; i++) {
+        await handleFileProcess(files[i]);
+      }
     }
   };
 
   const handleSelectFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0];
-      await handleFileProcess(file);
+      for (let i = 0; i < e.target.files.length; i++) {
+        await handleFileProcess(e.target.files[i]);
+      }
       e.target.value = '';
     }
   };
@@ -157,6 +169,7 @@ export const DocumentDropzone: React.FC<DocumentDropzoneProps> = ({
           <input
             ref={fileInputRef}
             type="file"
+            multiple
             accept=".txt,.md,.markdown,.pdf,.json,.ts,.js,.tsx,.jsx,.py,.rs,.go,.java,.c,.cpp,.html,.css"
             onChange={handleSelectFile}
             className="hidden"
@@ -275,6 +288,52 @@ export const DocumentDropzone: React.FC<DocumentDropzoneProps> = ({
           <span>{error}</span>
         </div>
       )}
+
+      {/* Advanced Chunking Settings */}
+      <div className="mt-3">
+        <button
+          type="button"
+          onClick={() => setShowAdvanced(!showAdvanced)}
+          className="text-[11px] text-slate-500 hover:text-slate-300 font-mono flex items-center space-x-1"
+        >
+          <Sliders className="w-3 h-3" />
+          <span>{showAdvanced ? 'Hide' : 'Show'} Chunking Settings</span>
+        </button>
+        {showAdvanced && (
+          <div className="mt-2 p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-2 text-xs font-mono">
+            <div className="flex items-center justify-between">
+              <label className="text-slate-400">Chunk Size (chars):</label>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="range"
+                  min={200}
+                  max={2000}
+                  step={50}
+                  value={chunkSize || 550}
+                  onChange={(e) => onChunkSizeChange?.(Number(e.target.value))}
+                  className="w-24 accent-brand-500"
+                />
+                <span className="text-white font-bold w-10 text-right">{chunkSize || 550}</span>
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <label className="text-slate-400">Overlap (chars):</label>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="range"
+                  min={0}
+                  max={500}
+                  step={25}
+                  value={chunkOverlap || 100}
+                  onChange={(e) => onChunkOverlapChange?.(Number(e.target.value))}
+                  className="w-24 accent-brand-500"
+                />
+                <span className="text-white font-bold w-10 text-right">{chunkOverlap || 100}</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Quick-load Sample Buttons */}
       <div className="mt-4 pt-4 border-t border-slate-800/60">

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, Copy, Check, Quote, Loader2, RefreshCw } from 'lucide-react';
+import { Sparkles, Copy, Check, Quote, Loader2, RefreshCw, Settings } from 'lucide-react';
 import { RAGAnswer } from '../engine/rag_synthesizer';
 
 interface RAGAnswerBoxProps {
@@ -10,6 +10,11 @@ interface RAGAnswerBoxProps {
   activeMode?: 'in_browser_llm' | 'ollama' | 'extractive';
   onChangeMode?: (mode: 'in_browser_llm' | 'ollama' | 'extractive') => void;
   onRegenerate?: () => void;
+  ollamaEndpoint?: string;
+  ollamaModel?: string;
+  onOllamaEndpointChange?: (endpoint: string) => void;
+  onOllamaModelChange?: (model: string) => void;
+  history?: Array<{ role: 'user' | 'assistant'; content: string }>;
 }
 
 export const RAGAnswerBox: React.FC<RAGAnswerBoxProps> = ({
@@ -20,8 +25,14 @@ export const RAGAnswerBox: React.FC<RAGAnswerBoxProps> = ({
   activeMode = 'in_browser_llm',
   onChangeMode,
   onRegenerate,
+  ollamaEndpoint,
+  ollamaModel,
+  onOllamaEndpointChange,
+  onOllamaModelChange,
+  history,
 }) => {
   const [copied, setCopied] = useState(false);
+  const [showOllamaSettings, setShowOllamaSettings] = useState(false);
 
   if (!query.trim() && !isGenerating && !answer) return null;
 
@@ -115,6 +126,17 @@ export const RAGAnswerBox: React.FC<RAGAnswerBoxProps> = ({
             </div>
           )}
 
+          {activeMode === 'ollama' && onOllamaEndpointChange && (
+            <button
+              type="button"
+              onClick={() => setShowOllamaSettings(!showOllamaSettings)}
+              className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              title="Ollama connection settings"
+            >
+              <Settings className="w-3.5 h-3.5" />
+            </button>
+          )}
+
           {onRegenerate && (
             <button
               type="button"
@@ -149,14 +171,47 @@ export const RAGAnswerBox: React.FC<RAGAnswerBoxProps> = ({
         </div>
       </div>
 
+      {showOllamaSettings && activeMode === 'ollama' && (
+        <div className="mb-3 p-3 rounded-lg bg-slate-950/80 border border-slate-800 space-y-2 text-xs font-mono">
+          <div className="flex items-center space-x-2">
+            <label className="text-slate-400 shrink-0 w-16">Endpoint:</label>
+            <input
+              type="text"
+              value={ollamaEndpoint || 'http://localhost:11434'}
+              onChange={(e) => onOllamaEndpointChange?.(e.target.value)}
+              className="flex-1 px-2 py-1 bg-slate-900 border border-slate-700 rounded text-white placeholder-slate-500 focus:outline-none focus:border-brand-400"
+              placeholder="http://localhost:11434"
+            />
+          </div>
+          <div className="flex items-center space-x-2">
+            <label className="text-slate-400 shrink-0 w-16">Model:</label>
+            <input
+              type="text"
+              value={ollamaModel || 'llama3.2'}
+              onChange={(e) => onOllamaModelChange?.(e.target.value)}
+              className="flex-1 px-2 py-1 bg-slate-900 border border-slate-700 rounded text-white placeholder-slate-500 focus:outline-none focus:border-brand-400"
+              placeholder="llama3.2"
+            />
+          </div>
+          <p className="text-[10px] text-slate-500">Ollama must be running locally. Supported models: llama3.2, mistral, gemma2, phi3, etc.</p>
+        </div>
+      )}
+
       {/* Loading State */}
       {isGenerating && (
-        <div className="py-4 text-center space-y-2 font-mono text-xs">
-          <div className="flex items-center justify-center space-x-2 text-brand-300">
-            <Loader2 className="w-4 h-4 animate-spin text-brand-400" />
-            <span>{generationStatus || 'Synthesizing grounded answer with local LLM...'}</span>
-          </div>
-          <p className="text-[11px] text-slate-500">
+        <div className="py-3 space-y-2 font-mono text-xs">
+          {generationStatus && generationStatus.length > 40 ? (
+            <div className="text-sm text-slate-200 leading-relaxed font-sans whitespace-pre-wrap">
+              {generationStatus}
+              <span className="inline-block w-2 h-4 bg-brand-400 animate-pulse ml-0.5 align-text-bottom" />
+            </div>
+          ) : (
+            <div className="flex items-center justify-center space-x-2 text-brand-300">
+              <Loader2 className="w-4 h-4 animate-spin text-brand-400" />
+              <span>{generationStatus || 'Synthesizing grounded answer with local LLM...'}</span>
+            </div>
+          )}
+          <p className="text-[11px] text-slate-500 text-center">
             Retrieval complete. Processing context evidence inside Web Worker.
           </p>
         </div>
@@ -165,6 +220,21 @@ export const RAGAnswerBox: React.FC<RAGAnswerBoxProps> = ({
       {/* Answer Body */}
       {!isGenerating && answer && (
         <>
+          {history && history.length > 2 && (
+            <details className="mb-3 text-xs">
+              <summary className="text-slate-500 cursor-pointer hover:text-slate-300 font-mono">
+                Previous conversation ({Math.floor(history.length / 2)} exchanges)
+              </summary>
+              <div className="mt-2 space-y-1.5 max-h-32 overflow-y-auto pr-1">
+                {history.slice(0, -2).map((h, i) => (
+                  <div key={i} className={`text-[11px] font-mono px-2 py-1 rounded ${h.role === 'user' ? 'text-brand-300 bg-brand-950/30' : 'text-slate-400 bg-slate-950/50'}`}>
+                    <span className="font-bold">{h.role === 'user' ? 'Q:' : 'A:'}</span> {h.content.slice(0, 200)}{h.content.length > 200 ? '...' : ''}
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
+
           <div className="text-sm text-slate-200 leading-relaxed font-sans mb-3">
             {answer.summary}
           </div>

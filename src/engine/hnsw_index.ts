@@ -78,6 +78,7 @@ export class HNSWIndex {
 
   private nodes: HNSWNode[] = [];
   private idToIndex: Map<string, number> = new Map();
+  private deletedSet: Set<number> = new Set();
   private entryPointIndex: number | null = null;
   private maxLevel = -1;
 
@@ -93,6 +94,10 @@ export class HNSWIndex {
 
   public get size(): number {
     return this.nodes.length;
+  }
+
+  public get activeSize(): number {
+    return this.nodes.length - this.deletedSet.size;
   }
 
   public get entryPoint(): number | null {
@@ -178,6 +183,7 @@ export class HNSWIndex {
       const neighbors = this.nodes[curr].neighbors[level] || [];
       for (let i = 0; i < neighbors.length; i++) {
         const neighborIdx = neighbors[i];
+        if (this.deletedSet.has(neighborIdx)) continue;
         const d = this.dist(queryVector, neighborIdx, querySQ8, queryBQ);
         if (d < currDist) {
           currDist = d;
@@ -223,6 +229,7 @@ export class HNSWIndex {
       const neighbors = this.nodes[curr.index].neighbors[level] || [];
       for (let i = 0; i < neighbors.length; i++) {
         const neighborIdx = neighbors[i];
+        if (this.deletedSet.has(neighborIdx)) continue;
         if (visited.has(neighborIdx)) continue;
         visited.add(neighborIdx);
 
@@ -379,6 +386,20 @@ export class HNSWIndex {
   }
 
   /**
+   * Lazy deletes a node from the HNSW index by tombstoning its index.
+   * Returns true if deleted, false if not found.
+   */
+  public delete(id: string): boolean {
+    const idx = this.idToIndex.get(id);
+    if (idx === undefined) {
+      return false;
+    }
+    this.deletedSet.add(idx);
+    this.idToIndex.delete(id);
+    return true;
+  }
+
+  /**
    * Performs Approximate Nearest Neighbor (ANN) search with optional metadata filter predicate.
    */
   public search(
@@ -387,7 +408,7 @@ export class HNSWIndex {
     efSearchOrFilter?: number | ((id: string) => boolean),
     filterFn?: (id: string) => boolean
   ): SearchResult[] {
-    if (this.nodes.length === 0 || this.entryPointIndex === null) {
+    if (this.nodes.length === 0 || this.entryPointIndex === null || this.activeSize === 0) {
       return [];
     }
 
@@ -413,9 +434,11 @@ export class HNSWIndex {
     const ef = Math.max(actualFilter ? actualEfSearch * 2 : actualEfSearch, topK);
     const candidates = this.searchLayer(queryVector, [currEnterPoint], ef, 0, querySQ8, queryBQ);
 
+    const nonDeleted = candidates.filter((item) => !this.deletedSet.has(item.index));
+
     const filtered = actualFilter
-      ? candidates.filter((item) => actualFilter!(this.nodes[item.index].id))
-      : candidates;
+      ? nonDeleted.filter((item) => actualFilter!(this.nodes[item.index].id))
+      : nonDeleted;
 
     return filtered.slice(0, topK).map((item) => {
       const node = this.nodes[item.index];
@@ -450,6 +473,7 @@ export class HNSWIndex {
     const scored: Array<{ id: string; distance: number; score: number }> = [];
 
     for (let i = 0; i < this.nodes.length; i++) {
+      if (this.deletedSet.has(i)) continue;
       const node = this.nodes[i];
       if (filterFn && !filterFn(node.id)) continue;
 
@@ -467,7 +491,7 @@ export class HNSWIndex {
    */
   public getVector(id: string): Float32Array | null {
     const idx = this.idToIndex.get(id);
-    if (idx === undefined) return null;
+    if (idx === undefined || this.deletedSet.has(idx)) return null;
     return this.nodes[idx].vector;
   }
 
@@ -475,13 +499,66 @@ export class HNSWIndex {
    * Returns all stored nodes for visualization and batch export.
    */
   public getAllNodes(): Array<{ id: string; vector: Float32Array; level: number }> {
-    return this.nodes.map((n) => ({ id: n.id, vector: n.vector, level: n.level }));
+    return this.nodes
+      .filter((_, idx) => !this.deletedSet.has(idx))
+      .map((n) => ({ id: n.id, vector: n.vector, level: n.level }));
   }
 
   /**
-   * Serializes the HNSW graph into a JSON-compatible snapshot.
+   * Serializes the HNSW graph into a JSON-compatible snapshot excluding deleted nodes.
    */
   public serialize(): SerializedHNSW {
+    const oldToNew = new Map<number, number>();
+    let newIdx = 0;
+    for (let i = 0; i < this.nodes.length; i++) {
+      if (!this.deletedSet.has(i)) {
+        oldToNew.set(i, newIdx++);
+      }
+    }
+
+    let newEntryPointIndex: number | null = null;
+    let newMaxLevel = -1;
+
+    if (this.entryPointIndex !== null && oldToNew.has(this.entryPointIndex)) {
+      newEntryPointIndex = oldToNew.get(this.entryPointIndex)!;
+      newMaxLevel = this.maxLevel;
+    } else if (oldToNew.size > 0) {
+      let bestOldIdx = -1;
+      let bestLevel = -1;
+      for (let i = 0; i < this.nodes.length; i++) {
+        if (!this.deletedSet.has(i) && this.nodes[i].level > bestLevel) {
+          bestLevel = this.nodes[i].level;
+          bestOldIdx = i;
+        }
+      }
+      if (bestOldIdx !== -1) {
+        newEntryPointIndex = oldToNew.get(bestOldIdx)!;
+        newMaxLevel = bestLevel;
+      }
+    }
+
+    const serializedNodes: Array<{
+      id: string;
+      vector: number[];
+      level: number;
+      neighbors: number[][];
+    }> = [];
+
+    for (let i = 0; i < this.nodes.length; i++) {
+      if (this.deletedSet.has(i)) continue;
+      const n = this.nodes[i];
+      serializedNodes.push({
+        id: n.id,
+        vector: Array.from(n.vector),
+        level: n.level,
+        neighbors: n.neighbors.map((layer) =>
+          layer
+            .filter((neighborIdx) => oldToNew.has(neighborIdx))
+            .map((neighborIdx) => oldToNew.get(neighborIdx)!)
+        ),
+      });
+    }
+
     return {
       M: this.M,
       M0: this.M0,
@@ -489,14 +566,9 @@ export class HNSWIndex {
       efSearch: this.efSearch,
       metric: this.metric,
       quantization: this.quantization,
-      entryPointIndex: this.entryPointIndex,
-      maxLevel: this.maxLevel,
-      nodes: this.nodes.map((n) => ({
-        id: n.id,
-        vector: Array.from(n.vector),
-        level: n.level,
-        neighbors: n.neighbors.map((layer) => [...layer]),
-      })),
+      entryPointIndex: newEntryPointIndex,
+      maxLevel: newMaxLevel,
+      nodes: serializedNodes,
     };
   }
 
@@ -534,9 +606,37 @@ export class HNSWIndex {
     return index;
   }
 
+  /**
+   * Rebuilds the index from scratch using only non-deleted nodes.
+   * Cleans up tombstoned nodes and re-optimizes graph connectivity.
+   */
+  public compact(): void {
+    const freshIndex = new HNSWIndex({
+      M: this.M,
+      M0: this.M0,
+      efConstruction: this.efConstruction,
+      efSearch: this.efSearch,
+      metric: this.metric,
+      quantization: this.quantization,
+    });
+
+    for (let i = 0; i < this.nodes.length; i++) {
+      if (this.deletedSet.has(i)) continue;
+      const node = this.nodes[i];
+      freshIndex.insert(node.id, node.vector);
+    }
+
+    this.nodes = freshIndex.nodes;
+    this.idToIndex = freshIndex.idToIndex;
+    this.deletedSet.clear();
+    this.entryPointIndex = freshIndex.entryPointIndex;
+    this.maxLevel = freshIndex.maxLevel;
+  }
+
   public clear(): void {
     this.nodes = [];
     this.idToIndex.clear();
+    this.deletedSet.clear();
     this.entryPointIndex = null;
     this.maxLevel = -1;
   }

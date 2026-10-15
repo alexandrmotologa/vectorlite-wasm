@@ -42,6 +42,8 @@ export const VectorClusterCanvas: React.FC<VectorClusterCanvasProps> = ({
   onSelectChunk,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [canvasSize, setCanvasSize] = useState({ width: 800, height: 400 });
   const [viewMode, setViewMode] = useState<'2D' | '3D'>('2D');
   const [hoveredPoint, setHoveredPoint] = useState<{ point: ProjectedPoint; screenX: number; screenY: number } | null>(null);
   const [zoom, setZoom] = useState(1.0);
@@ -49,6 +51,19 @@ export const VectorClusterCanvas: React.FC<VectorClusterCanvasProps> = ({
   const [rotation, setRotation] = useState({ yaw: 0.4, pitch: 0.2 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width } = entry.contentRect;
+        setCanvasSize({ width: Math.floor(width), height: Math.floor(Math.min(width * 0.5, 450)) });
+      }
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
 
   const docColorMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -372,6 +387,7 @@ export const VectorClusterCanvas: React.FC<VectorClusterCanvasProps> = ({
     zoom,
     pan,
     rotation,
+    canvasSize,
   ]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -434,6 +450,12 @@ export const VectorClusterCanvas: React.FC<VectorClusterCanvasProps> = ({
 
   const handleMouseUp = () => {
     setIsDragging(false);
+  };
+
+  const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+    setZoom((z) => Math.max(0.3, Math.min(4.0, z * delta)));
   };
 
   const resetView = () => {
@@ -508,16 +530,17 @@ export const VectorClusterCanvas: React.FC<VectorClusterCanvasProps> = ({
         </div>
       </div>
 
-      <div className="relative border border-slate-800 rounded-xl overflow-hidden cursor-crosshair">
+      <div ref={containerRef} className="relative border border-slate-800 rounded-xl overflow-hidden cursor-crosshair">
         <canvas
           ref={canvasRef}
-          width={800}
-          height={400}
+          width={canvasSize.width}
+          height={canvasSize.height}
           onMouseMove={handleMouseMove}
           onMouseDown={handleMouseDown}
           onMouseUp={handleMouseUp}
+          onWheel={handleWheel}
           onClick={() => hoveredPoint && onSelectChunk && onSelectChunk(hoveredPoint.point.chunk)}
-          className="w-full h-[360px] block"
+          className="w-full h-auto block"
         />
 
         {hoveredPoint && (

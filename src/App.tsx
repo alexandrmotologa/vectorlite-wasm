@@ -8,6 +8,7 @@ import { VectorClusterCanvas } from './components/VectorClusterCanvas';
 import { ChunkInspectorModal } from './components/ChunkInspectorModal';
 import { BenchmarkStats } from './components/BenchmarkStats';
 import { SnapshotManager } from './components/SnapshotManager';
+import { DocumentLibrary } from './components/DocumentLibrary';
 import { HNSWIndex, QuantizationMode } from './engine/hnsw_index';
 import { BM25Index } from './engine/bm25';
 import { RecursiveChunker, TextChunk } from './engine/chunker';
@@ -36,7 +37,10 @@ export const App: React.FC = () => {
 
   // RAG States
   const [ragAnswer, setRagAnswer] = useState<RAGAnswer | null>(null);
+  const [ragHistory, setRagHistory] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
   const [ragMode, setRagMode] = useState<'in_browser_llm' | 'ollama' | 'extractive'>('in_browser_llm');
+  const [ollamaEndpoint, setOllamaEndpoint] = useState('http://localhost:11434');
+  const [ollamaModel, setOllamaModel] = useState('llama3.2');
   const [isGeneratingRAG, setIsGeneratingRAG] = useState(false);
   const [ragGenerationStatus, setRagGenerationStatus] = useState('');
 
@@ -44,8 +48,13 @@ export const App: React.FC = () => {
   const [vectors, setVectors] = useState<Array<{ id: string; vector: Float32Array }>>([]);
   const [searchResults, setSearchResults] = useState<HybridSearchResult[]>([]);
   const [currentQuery, setCurrentQuery] = useState('');
+  const currentQueryRef = useRef(currentQuery);
+  currentQueryRef.current = currentQuery;
   const [queryVector, setQueryVector] = useState<Float32Array | null>(null);
   const [queryLatencyMs, setQueryLatencyMs] = useState<number | null>(null);
+
+  const [chunkSize, setChunkSize] = useState(550);
+  const [chunkOverlap, setChunkOverlap] = useState(100);
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [processStatus, setProcessStatus] = useState('');
@@ -74,6 +83,29 @@ export const App: React.FC = () => {
     return Array.from(set).sort();
   }, [chunks]);
 
+  const documentInfos = useMemo(() => {
+    const docMap = new Map<string, { chunkCount: number; tokenCount: number; addedAt: number }>();
+    for (const c of chunks) {
+      const existing = docMap.get(c.documentName);
+      if (existing) {
+        existing.chunkCount++;
+        existing.tokenCount += c.tokenCountEstimate;
+      } else {
+        docMap.set(c.documentName, {
+          chunkCount: 1,
+          tokenCount: c.tokenCountEstimate,
+          addedAt: Date.now(),
+        });
+      }
+    }
+    return Array.from(docMap.entries()).map(([name, info]) => ({
+      name,
+      chunkCount: info.chunkCount,
+      tokenCount: info.tokenCount,
+      addedAt: info.addedAt,
+    }));
+  }, [chunks]);
+
   const totalTokens = useMemo(() => {
     return chunks.reduce((acc, c) => acc + c.tokenCountEstimate, 0);
   }, [chunks]);
@@ -85,6 +117,7 @@ export const App: React.FC = () => {
         setRagAnswer(null);
         return;
       }
+      currentQueryRef.current = query;
 
       setIsGeneratingRAG(true);
       setRagGenerationStatus(
@@ -115,9 +148,12 @@ export const App: React.FC = () => {
           text: c.text,
         })),
         backend: mode,
+        ollamaEndpoint,
+        ollamaModel,
+        history: ragHistory.slice(-6), // Last 3 Q&A pairs
       } as RAGWorkerInMessage);
     },
-    [ragMode]
+    [ragMode, ollamaEndpoint, ollamaModel, ragHistory]
   );
 
   // Initialize Web Workers and rehydrate from IndexedDB on startup
@@ -175,16 +211,25 @@ export const App: React.FC = () => {
       const msg = e.data;
       if (msg.type === 'RAG_STATUS') {
         if (msg.message) setRagGenerationStatus(msg.message);
+      } else if (msg.type === 'RAG_STREAM_TOKEN') {
+        setRagGenerationStatus(msg.accumulated);
       } else if (msg.type === 'RAG_RESULT') {
-        setRagAnswer({
+        const answer = {
           summary: msg.summary,
           bulletPoints: msg.bulletPoints,
           citations: msg.citations,
           confidence: msg.confidence,
           backendUsed: msg.backendUsed,
           modelTitle: msg.modelTitle,
-        });
+        };
+        setRagAnswer(answer);
         setIsGeneratingRAG(false);
+        // Append to conversation history
+        setRagHistory(prev => [
+          ...prev,
+          { role: 'user' as const, content: currentQueryRef.current || currentQuery },
+          { role: 'assistant' as const, content: answer.summary + (answer.bulletPoints.length > 0 ? '\n' + answer.bulletPoints.join('\n') : '') },
+        ]);
       } else if (msg.type === 'RAG_ERROR') {
         console.warn('RAG worker error:', msg.error);
         setIsGeneratingRAG(false);
@@ -219,6 +264,24 @@ export const App: React.FC = () => {
       rWorker.terminate();
     };
   }, [modelName]);
+
+  // Global keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+K or / to focus search (when not in an input)
+      if ((e.key === 'k' && (e.ctrlKey || e.metaKey)) || (e.key === '/' && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement))) {
+        e.preventDefault();
+        const searchInput = document.querySelector<HTMLInputElement>('input[placeholder*="Search concepts"], input[placeholder*="Load a document"]');
+        searchInput?.focus();
+      }
+      // Escape to close inspector modal
+      if (e.key === 'Escape' && inspectingItem) {
+        setInspectingItem(null);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [inspectingItem]);
 
   // Handle Model Switching
   const handleSelectModel = (newModel: string) => {
@@ -278,7 +341,7 @@ export const App: React.FC = () => {
         setProcessStatus('Applying syntax-aware code chunker...');
         newChunks = CodeChunker.split(content, filename, { maxChunkLines: 40, overlapLines: 8 });
       } else {
-        const chunker = new RecursiveChunker({ chunkSize: 550, chunkOverlap: 100 });
+        const chunker = new RecursiveChunker({ chunkSize, chunkOverlap });
         newChunks = chunker.split(content, filename);
       }
 
@@ -467,6 +530,38 @@ export const App: React.FC = () => {
     setRagAnswer(null);
   };
 
+  // Delete a specific document and its associated chunks and vectors
+  const handleDeleteDocument = async (documentName: string) => {
+    // Find chunk IDs belonging to this document
+    const docChunkIds = chunks
+      .filter((c) => c.documentName === documentName)
+      .map((c) => c.id);
+
+    if (docChunkIds.length === 0) return;
+
+    // Delete from HNSW index
+    for (const id of docChunkIds) {
+      hnswRef.current.delete(id);
+    }
+    // Compact HNSW graph after bulk deletion
+    hnswRef.current.compact();
+
+    // Delete from BM25 index
+    for (const id of docChunkIds) {
+      bm25Ref.current.removeDocument(id);
+    }
+
+    // Remove from IndexedDB
+    await storageRef.current.deleteDocumentData(documentName, docChunkIds);
+
+    // Update React state
+    setChunks((prev) => prev.filter((c) => c.documentName !== documentName));
+    setVectors((prev) => prev.filter((v) => !docChunkIds.includes(v.id)));
+    setSearchResults((prev) => prev.filter((r) => !docChunkIds.includes(r.id)));
+    setRagAnswer(null);
+    setInspectingItem((prev) => (prev?.chunk.documentName === documentName ? null : prev));
+  };
+
   // Clear all data
   const handleClearAll = async () => {
     if (!window.confirm('Reset and clear all indexed documents and vectors?')) return;
@@ -477,6 +572,7 @@ export const App: React.FC = () => {
     setVectors([]);
     setSearchResults([]);
     setRagAnswer(null);
+    setRagHistory([]);
     setQueryVector(null);
     setQueryLatencyMs(null);
   };
@@ -533,6 +629,16 @@ export const App: React.FC = () => {
               isProcessing={isProcessing}
               processStatus={processStatus}
               batchProgress={batchProgress}
+              chunkSize={chunkSize}
+              chunkOverlap={chunkOverlap}
+              onChunkSizeChange={setChunkSize}
+              onChunkOverlapChange={setChunkOverlap}
+            />
+
+            <DocumentLibrary
+              documents={documentInfos}
+              onDeleteDocument={handleDeleteDocument}
+              isProcessing={isProcessing}
             />
 
             <SnapshotManager
@@ -562,6 +668,11 @@ export const App: React.FC = () => {
               activeMode={ragMode}
               onChangeMode={(m) => handleRegenerateRAG(m)}
               onRegenerate={() => handleRegenerateRAG()}
+              ollamaEndpoint={ollamaEndpoint}
+              ollamaModel={ollamaModel}
+              onOllamaEndpointChange={setOllamaEndpoint}
+              onOllamaModelChange={setOllamaModel}
+              history={ragHistory}
             />
 
             <SearchResults

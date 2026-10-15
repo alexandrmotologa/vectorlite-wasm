@@ -102,6 +102,32 @@ export class VectorStorage {
     return db.getAll('snapshots');
   }
 
+  public async deleteDocument(documentName: string): Promise<void> {
+    const db = await this.dbPromise;
+    await db.delete('documents', documentName);
+  }
+
+  public async deleteChunksAndVectors(chunkIds: string[]): Promise<void> {
+    const db = await this.dbPromise;
+    const tx = db.transaction(['chunks', 'vectors'], 'readwrite');
+    for (const id of chunkIds) {
+      await tx.objectStore('chunks').delete(id);
+      await tx.objectStore('vectors').delete(id);
+    }
+    await tx.done;
+  }
+
+  public async deleteDocumentData(documentName: string, chunkIds: string[]): Promise<void> {
+    const db = await this.dbPromise;
+    const tx = db.transaction(['documents', 'chunks', 'vectors'], 'readwrite');
+    await tx.objectStore('documents').delete(documentName);
+    for (const id of chunkIds) {
+      await tx.objectStore('chunks').delete(id);
+      await tx.objectStore('vectors').delete(id);
+    }
+    await tx.done;
+  }
+
   public async clearAll(): Promise<void> {
     const db = await this.dbPromise;
     const tx = db.transaction(['documents', 'chunks', 'vectors', 'snapshots'], 'readwrite');

@@ -15,6 +15,7 @@ export interface RAGWorkerInMessage {
   backend?: 'in_browser_llm' | 'ollama' | 'extractive';
   ollamaEndpoint?: string;
   ollamaModel?: string;
+  history?: Array<{ role: 'user' | 'assistant'; content: string }>;
 }
 
 export type RAGWorkerOutMessage =
@@ -34,10 +35,11 @@ export type RAGWorkerOutMessage =
       backendUsed: 'in_browser_llm' | 'ollama' | 'extractive';
       modelTitle: string;
     }
+  | { type: 'RAG_STREAM_TOKEN'; token: string; accumulated: string }
   | { type: 'RAG_ERROR'; error: string };
 
 self.onmessage = async (e: MessageEvent<RAGWorkerInMessage>) => {
-  const { type, modelName, query, contexts, backend, ollamaEndpoint, ollamaModel } = e.data;
+  const { type, modelName, query, contexts, backend, ollamaEndpoint, ollamaModel, history } = e.data;
 
   try {
     if (type === 'INIT') {
@@ -119,7 +121,11 @@ self.onmessage = async (e: MessageEvent<RAGWorkerInMessage>) => {
           .join('\n\n');
 
         const systemPrompt = `You are a factual, concise grounded RAG assistant. Answer the user query using only the supplied context. Use bracketed citation numbers like [1], [2] when referencing source facts.`;
-        const prompt = `${systemPrompt}\n\nContext:\n${contextBlock}\n\nUser Question: ${query}\n\nConcise Grounded Answer:`;
+        const historyBlock = (history || []).map(h => 
+          h.role === 'user' ? `User: ${h.content}` : `Assistant: ${h.content}`
+        ).join('\n');
+
+        const prompt = `${systemPrompt}\n\n${historyBlock ? `Previous conversation:\n${historyBlock}\n\n` : ''}Context:\n${contextBlock}\n\nUser Question: ${query}\n\nConcise Grounded Answer:`;
 
         const res = await fetch(`${endpoint}/api/generate`, {
           method: 'POST',
@@ -127,7 +133,7 @@ self.onmessage = async (e: MessageEvent<RAGWorkerInMessage>) => {
           body: JSON.stringify({
             model: targetOllamaModel,
             prompt,
-            stream: false,
+            stream: true,
             options: { temperature: 0.2, num_predict: 250 },
           }),
         });
@@ -136,8 +142,53 @@ self.onmessage = async (e: MessageEvent<RAGWorkerInMessage>) => {
           throw new Error(`Ollama HTTP ${res.status}: ${res.statusText}`);
         }
 
-        const data = await res.json();
-        const rawAnswer: string = data.response || '';
+        // Stream NDJSON tokens
+        const reader = res.body?.getReader();
+        if (!reader) throw new Error('No readable stream from Ollama');
+
+        const decoder = new TextDecoder();
+        let fullResponse = '';
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            try {
+              const parsed = JSON.parse(line);
+              if (parsed.response) {
+                fullResponse += parsed.response;
+                self.postMessage({
+                  type: 'RAG_STREAM_TOKEN',
+                  token: parsed.response,
+                  accumulated: fullResponse,
+                } as RAGWorkerOutMessage);
+              }
+            } catch { /* skip malformed lines */ }
+          }
+        }
+
+        if (buffer.trim()) {
+          try {
+            const parsed = JSON.parse(buffer);
+            if (parsed.response) {
+              fullResponse += parsed.response;
+              self.postMessage({
+                type: 'RAG_STREAM_TOKEN',
+                token: parsed.response,
+                accumulated: fullResponse,
+              } as RAGWorkerOutMessage);
+            }
+          } catch { /* skip malformed lines */ }
+        }
+
+        const rawAnswer = fullResponse;
         const lines = rawAnswer.split('\n').map((l) => l.trim()).filter(Boolean);
         const summary = lines[0] || 'Answer synthesized from local Ollama.';
         const bulletPoints = lines.slice(1, 4);
@@ -190,7 +241,12 @@ self.onmessage = async (e: MessageEvent<RAGWorkerInMessage>) => {
           .map((c) => `[${c.index}] ${c.text.slice(0, 350)}`)
           .join(' ');
 
-        const prompt = `Context: ${contextBlock} Question: ${query} Answer the question concisely using the context:`;
+        const historyContext = (history || [])
+          .slice(-4)
+          .map((h) => (h.role === 'user' ? `Q: ${h.content.slice(0, 80)}` : `A: ${h.content.slice(0, 120)}`))
+          .join(' ');
+
+        const prompt = `${historyContext ? historyContext + ' ' : ''}Context: ${contextBlock} Question: ${query} Answer the question concisely using the context:`;
 
         const output = await generator(prompt, {
           max_new_tokens: 140,
