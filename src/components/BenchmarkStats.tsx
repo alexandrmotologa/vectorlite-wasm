@@ -226,7 +226,7 @@ export const BenchmarkStats: React.FC<BenchmarkStatsProps> = ({
 
       {/* Vector Quantization Architecture Comparison */}
       <div className="mt-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 font-mono text-xs shadow-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 mb-3 border-b border-slate-200 dark:border-slate-850">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 mb-3 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center space-x-2">
             <HardDrive className="w-4 h-4 text-brand-500 dark:text-brand-400" />
             <span className="text-slate-900 dark:text-slate-200 font-semibold">Vector Quantization & Memory Compaction</span>
@@ -340,7 +340,7 @@ export const BenchmarkStats: React.FC<BenchmarkStatsProps> = ({
       {/* Benchmark Results Card */}
       {benchResult && (
         <div className="mt-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 font-mono text-xs shadow-xs">
-          <div className="flex items-center justify-between mb-3 text-slate-600 dark:text-slate-400 pb-2 border-b border-slate-200 dark:border-slate-850">
+          <div className="flex items-center justify-between mb-3 text-slate-600 dark:text-slate-400 pb-2 border-b border-slate-200 dark:border-slate-800">
             <span className="text-brand-600 dark:text-brand-300 font-bold">100-Query Latency Distribution</span>
             <span className="text-slate-500">Throughput: {benchResult.qps.toLocaleString()} QPS</span>
           </div>

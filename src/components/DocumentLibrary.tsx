@@ -28,13 +28,13 @@ export const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
   if (documents.length === 0) return null;
 
   return (
-    <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 backdrop-blur-sm">
+    <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 backdrop-blur-sm shadow-xs transition-colors">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center space-x-2">
-          <Library className="w-4.5 h-4.5 text-brand-400" />
-          <h2 className="text-sm font-semibold text-white">Indexed Documents</h2>
+          <Library className="w-4.5 h-4.5 text-brand-500 dark:text-brand-400" />
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Indexed Documents</h2>
         </div>
-        <span className="text-xs font-mono text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-md">
+        <span className="text-xs font-mono text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700/60">
           {documents.length} {documents.length === 1 ? 'document' : 'documents'}
         </span>
       </div>
@@ -43,13 +43,13 @@ export const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
         {documents.map((doc) => (
           <div
             key={doc.name}
-            className="flex items-center justify-between p-2.5 rounded-lg bg-slate-950/60 border border-slate-800 hover:border-slate-700 transition-colors group"
+            className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition-colors group"
           >
             <div className="flex items-center space-x-2.5 min-w-0">
               {getFileIcon(doc.name)}
               <div className="min-w-0">
-                <p className="text-xs font-semibold text-slate-200 truncate">{doc.name}</p>
-                <p className="text-[10px] font-mono text-slate-500">
+                <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">{doc.name}</p>
+                <p className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
                   {doc.chunkCount} chunks • ~{doc.tokenCount.toLocaleString()} tokens
                 </p>
               </div>
@@ -62,7 +62,7 @@ export const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
                   onDeleteDocument(doc.name);
                 }
               }}
-              className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-950/40 opacity-0 group-hover:opacity-100 transition-all disabled:opacity-30"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 opacity-80 sm:opacity-0 sm:group-hover:opacity-100 transition-all disabled:opacity-30"
               title={`Delete ${doc.name}`}
             >
               <Trash2 className="w-3.5 h-3.5" />

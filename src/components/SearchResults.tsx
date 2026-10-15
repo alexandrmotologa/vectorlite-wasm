@@ -123,7 +123,7 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
               </div>
 
               {/* Chunk Text Body with Highlight */}
-              <div className="text-xs text-slate-800 dark:text-slate-300 leading-relaxed font-mono bg-slate-50 dark:bg-slate-950/60 p-3 rounded-lg border border-slate-200 dark:border-slate-850 line-clamp-4">
+              <div className="text-xs text-slate-800 dark:text-slate-300 leading-relaxed font-mono bg-slate-50 dark:bg-slate-950/60 p-3 rounded-lg border border-slate-200 dark:border-slate-800 line-clamp-4">
                 {renderHighlightedText(chunk.text, query)}
               </div>
 

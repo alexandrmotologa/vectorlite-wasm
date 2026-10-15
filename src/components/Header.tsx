@@ -69,11 +69,11 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Desktop Telemetry Pills & Model Selector (visible on lg+) */}
-        <div className="hidden lg:flex items-center space-x-2.5 text-xs font-mono shrink-0">
+        {/* Desktop Telemetry Pills & Model Selector (visible on md+) */}
+        <div className="hidden md:flex items-center space-x-1.5 lg:space-x-2 text-xs font-mono shrink-0">
           {/* WebAssembly SIMD Badge */}
           <div
-            className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg border text-[11px] whitespace-nowrap ${
+            className={`flex items-center space-x-1 px-2 py-1 lg:px-2.5 lg:py-1.5 rounded-lg border text-[11px] whitespace-nowrap transition-colors ${
               isLight
                 ? isWasmSimd ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-slate-100 border-slate-200 text-slate-600'
                 : isWasmSimd ? 'bg-slate-900 border-indigo-500/40 text-indigo-300' : 'bg-slate-900 border-slate-800 text-slate-400'
@@ -81,7 +81,7 @@ export const Header: React.FC<HeaderProps> = ({
             title="128-bit hardware WebAssembly SIMD vector execution"
           >
             <Zap className={`w-3.5 h-3.5 ${isWasmSimd ? 'text-indigo-500 fill-indigo-500/20' : 'text-slate-400'}`} />
-            <span>WASM SIMD: {isWasmSimd ? 'Active' : 'Unrolled JS'}</span>
+            <span><span className="hidden xl:inline">WASM </span>SIMD: {isWasmSimd ? 'Active' : 'Unrolled'}</span>
           </div>
 
           {/* WebGPU Hardware Acceleration Badge */}
@@ -89,7 +89,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               type="button"
               onClick={onToggleDevice}
-              className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg border text-[11px] transition-colors cursor-pointer whitespace-nowrap ${
+              className={`flex items-center space-x-1 px-2 py-1 lg:px-2.5 lg:py-1.5 rounded-lg border text-[11px] transition-colors cursor-pointer whitespace-nowrap ${
                 isLight
                   ? embeddingDevice === 'webgpu'
                     ? 'bg-amber-50 border-amber-300 text-amber-800 hover:bg-amber-100'
@@ -113,7 +113,7 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           ) : (
             <div
-              className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg border text-[11px] whitespace-nowrap ${
+              className={`flex items-center space-x-1 px-2 py-1 lg:px-2.5 lg:py-1.5 rounded-lg border text-[11px] whitespace-nowrap ${
                 isLight ? 'bg-slate-100 border-slate-200 text-slate-600' : 'bg-slate-900 border-slate-800 text-slate-500'
               }`}
               title="WebGPU not detected in this browser environment. Using CPU/WASM."
@@ -124,7 +124,7 @@ export const Header: React.FC<HeaderProps> = ({
           )}
 
           {/* Model Selector Dropdown & Real Status */}
-          <div className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg border ${
+          <div className={`flex items-center space-x-1.5 px-2 py-1 lg:px-2.5 lg:py-1.5 rounded-lg border ${
             isLight ? 'bg-slate-100 border-slate-200' : 'bg-slate-900 border-slate-800'
           }`}>
             {modelStatus === 'loading' ? (
@@ -148,23 +148,23 @@ export const Header: React.FC<HeaderProps> = ({
                 <select
                   value={modelName}
                   onChange={(e) => onSelectModel(e.target.value)}
-                  className={`bg-transparent font-semibold focus:outline-none cursor-pointer text-xs ${
+                  className={`bg-transparent font-semibold focus:outline-none cursor-pointer text-xs max-w-[130px] sm:max-w-[160px] lg:max-w-[190px] truncate ${
                     isLight ? 'text-slate-800 hover:text-black' : 'text-slate-200 hover:text-white'
                   }`}
                   title="Select embedding model"
                 >
                   <option value="Xenova/all-MiniLM-L6-v2" className={isLight ? 'bg-white text-slate-900' : 'bg-slate-900 text-white'}>
-                    all-MiniLM-L6-v2 (Default 384-D)
+                    all-MiniLM-L6-v2 (384-D)
                   </option>
                   <option value="Xenova/bge-small-en-v1.5" className={isLight ? 'bg-white text-slate-900' : 'bg-slate-900 text-white'}>
-                    bge-small-en-v1.5 (High Accuracy)
+                    bge-small-en-v1.5
                   </option>
                   <option value="Xenova/multilingual-e5-small" className={isLight ? 'bg-white text-slate-900' : 'bg-slate-900 text-white'}>
-                    multilingual-e5-small (100+ Langs)
+                    multilingual-e5-small
                   </option>
                 </select>
                 {isFallback && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800/60">
                     Offline
                   </span>
                 )}
@@ -172,33 +172,36 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
 
-          {/* Stored Vectors & Tokens */}
-          <div className={`hidden xl:flex items-center space-x-2 px-3 py-1.5 rounded-lg border ${
+          {/* Stored Vectors & Tokens - Always visible on md+ */}
+          <div className={`flex items-center space-x-1.5 px-2 py-1 lg:px-2.5 lg:py-1.5 rounded-lg border ${
             isLight ? 'bg-slate-100 border-slate-200' : 'bg-slate-900 border-slate-800'
           }`}>
-            <Sparkles className="w-3.5 h-3.5 text-brand-500" />
-            <span className={isLight ? 'text-slate-600' : 'text-slate-400'}>Vectors:</span>
+            <Sparkles className="w-3.5 h-3.5 text-brand-500 shrink-0" />
+            <span className={`hidden xl:inline ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>Vectors:</span>
             <span className={`font-semibold ${isLight ? 'text-slate-900' : 'text-white'}`}>{vectorCount.toLocaleString()}</span>
+            <span className={`xl:hidden text-[10px] ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>vecs</span>
           </div>
 
-          <div className={`hidden 2xl:flex items-center space-x-2 px-3 py-1.5 rounded-lg border ${
+          <div className={`flex items-center space-x-1.5 px-2 py-1 lg:px-2.5 lg:py-1.5 rounded-lg border ${
             isLight ? 'bg-slate-100 border-slate-200' : 'bg-slate-900 border-slate-800'
           }`}>
-            <HardDrive className="w-3.5 h-3.5 text-indigo-500" />
-            <span className={isLight ? 'text-slate-600' : 'text-slate-400'}>Tokens:</span>
-            <span className={`font-semibold ${isLight ? 'text-slate-900' : 'text-white'}`}>~{totalTokens.toLocaleString()}</span>
+            <HardDrive className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+            <span className={`hidden xl:inline ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>Tokens:</span>
+            <span className={`font-semibold ${isLight ? 'text-slate-900' : 'text-white'}`}>~{totalTokens >= 1000 ? `${(totalTokens / 1000).toFixed(1)}k` : totalTokens}</span>
+            <span className={`xl:hidden text-[10px] ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>tok</span>
           </div>
         </div>
 
         {/* Right Actions: Compact info for tablet/mobile + Theme Toggle & GitHub */}
-        <div className="flex items-center space-x-2 shrink-0">
-          {/* Tablet/Mobile Compact Vector Count */}
-          <div className={`lg:hidden flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-mono ${
+        <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
+          {/* Mobile/Small Tablet Compact Vector Count */}
+          <div className={`md:hidden flex items-center space-x-1.5 px-2 py-1 rounded-lg border text-xs font-mono ${
             isLight ? 'bg-slate-100 border-slate-200 text-slate-700' : 'bg-slate-900 border-slate-800 text-slate-300'
           }`}>
             <Sparkles className="w-3 h-3 text-brand-500" />
-            <span className="font-semibold">{vectorCount}</span>
-            <span className={isLight ? 'text-slate-500 text-[10px]' : 'text-slate-500 text-[10px]'}>vecs</span>
+            <span className="font-semibold">{vectorCount}v</span>
+            <span className="text-slate-400 dark:text-slate-600">•</span>
+            <span className="text-slate-500 dark:text-slate-400">~{totalTokens >= 1000 ? `${Math.round(totalTokens / 1000)}k` : totalTokens}t</span>
           </div>
 
           {onToggleTheme && (

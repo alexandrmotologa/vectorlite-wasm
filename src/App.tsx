@@ -48,19 +48,34 @@ export const App: React.FC = () => {
 
   // Theme State
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    return (localStorage.getItem('vlw_theme') as 'dark' | 'light') || 'dark';
+    const saved = (localStorage.getItem('vlw_theme') as 'dark' | 'light') || 'dark';
+    if (typeof document !== 'undefined') {
+      document.documentElement.setAttribute('data-theme', saved);
+      document.documentElement.classList.remove('dark', 'light');
+      document.documentElement.classList.add(saved);
+      document.body.setAttribute('data-theme', saved);
+    }
+    return saved;
   });
 
+  const applyTheme = (t: 'dark' | 'light') => {
+    document.documentElement.setAttribute('data-theme', t);
+    document.documentElement.classList.remove('dark', 'light');
+    document.documentElement.classList.add(t);
+    document.body.setAttribute('data-theme', t);
+    document.body.classList.remove('dark', 'light');
+    document.body.classList.add(t);
+  };
+
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    document.documentElement.classList.toggle('light', theme === 'light');
-    document.documentElement.classList.toggle('dark', theme === 'dark');
+    applyTheme(theme);
   }, [theme]);
 
   const toggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark';
     setTheme(next);
     localStorage.setItem('vlw_theme', next);
+    applyTheme(next);
   };
 
   // RAG States
@@ -761,9 +776,9 @@ export const App: React.FC = () => {
 
             {/* Empty State when no results and no documents */}
             {searchResults.length === 0 && (
-              <div className="p-8 rounded-2xl bg-slate-900/40 border border-dashed border-slate-800 text-center space-y-3">
-                <Compass className="w-8 h-8 text-slate-600 mx-auto" />
-                <h3 className="text-sm font-semibold text-slate-400">
+              <div className="p-8 rounded-2xl bg-white dark:bg-slate-900/40 border border-dashed border-slate-300 dark:border-slate-800 text-center space-y-3 transition-colors shadow-xs">
+                <Compass className="w-8 h-8 text-slate-400 dark:text-slate-600 mx-auto" />
+                <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-300">
                   {vectors.length === 0
                     ? 'No documents loaded in local vector engine'
                     : 'Enter a search query above to see ranked matches & generated answers'}
@@ -810,10 +825,10 @@ export const App: React.FC = () => {
       )}
 
       {/* Footer */}
-      <footer className="border-t border-slate-800/80 bg-slate-950 py-6 mt-12 text-xs text-slate-500 font-mono">
+      <footer className="border-t border-slate-200 dark:border-slate-800/80 bg-slate-50 dark:bg-slate-950 py-6 mt-12 text-xs text-slate-600 dark:text-slate-500 font-mono transition-colors">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center space-x-2">
-            <span>VectorLite-Wasm</span>
+            <span className="font-semibold text-slate-800 dark:text-slate-300">VectorLite-Wasm</span>
             <span>•</span>
             <span>Client-Side ONNX WebAssembly, Hardware SIMD & Local Generative RAG</span>
           </div>

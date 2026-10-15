@@ -55,16 +55,16 @@ export const RAGAnswerBox: React.FC<RAGAnswerBoxProps> = ({
   const getBadgeStyle = (backend?: string) => {
     switch (backend) {
       case 'in_browser_llm':
-        return 'bg-emerald-950/80 text-emerald-300 border-emerald-800/60';
+        return 'bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60';
       case 'ollama':
-        return 'bg-purple-950/80 text-purple-300 border-purple-800/60';
+        return 'bg-purple-50 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60';
       default:
-        return 'bg-slate-900 text-slate-300 border-slate-700/60';
+        return 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60';
     }
   };
 
   return (
-    <div className="bg-white dark:bg-gradient-to-br dark:from-slate-900 dark:via-slate-900/90 dark:to-brand-950/30 border border-brand-500/30 rounded-2xl p-4 sm:p-5 shadow-md dark:shadow-xl relative overflow-hidden">
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs dark:shadow-xl relative overflow-hidden transition-colors">
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 pb-3 border-b border-slate-200 dark:border-slate-800/60">
         <div className="flex items-center space-x-2">

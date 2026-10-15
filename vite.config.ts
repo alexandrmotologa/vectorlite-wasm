@@ -30,6 +30,9 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,wasm}'],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
       },
+      devOptions: {
+        enabled: false,
+      },
     }),
   ],
   resolve: {
