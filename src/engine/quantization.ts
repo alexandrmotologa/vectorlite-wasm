@@ -122,6 +122,21 @@ export function cosineSimilarityBQ(a: QuantizedBQVector, b: QuantizedBQVector): 
 }
 
 /**
+ * Reconstructs a unit-norm Float32Array from a 1-bit binary quantized vector.
+ */
+export function dequantizeBQ(quantized: QuantizedBQVector): Float32Array {
+  const result = new Float32Array(quantized.dimension);
+  const normVal = 1.0 / Math.sqrt(quantized.dimension);
+  for (let i = 0; i < quantized.dimension; i++) {
+    const wordIdx = i >>> 5;
+    const bitIdx = i & 31;
+    const isSet = (quantized.bits[wordIdx] & (1 << bitIdx)) !== 0;
+    result[i] = isSet ? normVal : -normVal;
+  }
+  return result;
+}
+
+/**
  * 32-bit population count (number of set bits) using bitwise parallel logic.
  */
 function popcount32(x: number): number {
@@ -132,3 +147,4 @@ function popcount32(x: number): number {
   x = x + (x >>> 16);
   return x & 0x3f;
 }
+

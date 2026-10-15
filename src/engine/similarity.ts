@@ -1,15 +1,24 @@
-/**
- * High-performance vector math operations for Float32Array vectors.
- * Features 4x loop unrolling for optimal CPU cache utilization and SIMD pipelining.
- */
+import { wasmSimdEngine } from './wasm_simd';
 
 export type DistanceMetric = 'cosine' | 'dot' | 'euclidean';
 
 /**
+ * Checks whether hardware WebAssembly 128-bit SIMD acceleration is currently active.
+ */
+export function isWasmSimdActive(): boolean {
+  return wasmSimdEngine.isActive;
+}
+
+/**
  * Computes the dot product of two Float32Array vectors.
- * Uses 4-step loop unrolling.
+ * Uses hardware WebAssembly 128-bit SIMD kernel with fallback to 4x loop unrolling.
  */
 export function dotProduct(a: Float32Array, b: Float32Array): number {
+  const simdResult = wasmSimdEngine.dot(a, b);
+  if (simdResult !== null) {
+    return simdResult;
+  }
+
   const len = a.length;
   let sum = 0;
   let i = 0;
@@ -73,6 +82,11 @@ export function cosineSimilarity(a: Float32Array, b: Float32Array, assumedNormal
  * Computes squared Euclidean distance between two vectors.
  */
 export function squaredEuclideanDistance(a: Float32Array, b: Float32Array): number {
+  const simdResult = wasmSimdEngine.squaredEuclidean(a, b);
+  if (simdResult !== null) {
+    return simdResult;
+  }
+
   const len = a.length;
   let sum = 0;
   let i = 0;

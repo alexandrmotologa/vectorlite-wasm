@@ -13,6 +13,8 @@ export interface RAGAnswer {
   bulletPoints: string[];
   citations: RAGCitation[];
   confidence: number;
+  backendUsed?: 'in_browser_llm' | 'ollama' | 'extractive';
+  modelTitle?: string;
 }
 
 /**

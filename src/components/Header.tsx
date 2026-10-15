@@ -1,5 +1,5 @@
 import React from 'react';
-import { Database, Cpu, HardDrive, CheckCircle2, Loader2, Sparkles } from 'lucide-react';
+import { Database, Cpu, HardDrive, CheckCircle2, Loader2, Sparkles, Zap, AlertTriangle } from 'lucide-react';
 
 interface HeaderProps {
   modelStatus: 'idle' | 'loading' | 'ready' | 'error';
@@ -8,6 +8,8 @@ interface HeaderProps {
   totalTokens: number;
   downloadProgress: { file: string; progress: number } | null;
   onSelectModel: (modelName: string) => void;
+  isFallback?: boolean;
+  isWasmSimd?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -17,6 +19,8 @@ export const Header: React.FC<HeaderProps> = ({
   totalTokens,
   downloadProgress,
   onSelectModel,
+  isFallback = false,
+  isWasmSimd = true,
 }) => {
   return (
     <header className="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md sticky top-0 z-40">
@@ -32,16 +36,29 @@ export const Header: React.FC<HeaderProps> = ({
                 VectorLite<span className="text-brand-400 font-sans">.wasm</span>
               </h1>
               <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-slate-800 text-brand-300 border border-slate-700">
-                v0.2.0 • Client Wasm
+                v0.3.0 • Genuine Wasm
               </span>
             </div>
-            <p className="text-xs text-slate-400">Zero-backend local semantic search & vector engine</p>
+            <p className="text-xs text-slate-400">Zero-backend local semantic search & generative RAG</p>
           </div>
         </div>
 
         {/* Telemetry Status Pills & Model Selector */}
         <div className="hidden md:flex items-center space-x-3 text-xs font-mono">
-          {/* Model Selector Dropdown */}
+          {/* WebAssembly SIMD Badge */}
+          <div
+            className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg border text-[11px] ${
+              isWasmSimd
+                ? 'bg-slate-900 border-indigo-500/40 text-indigo-300'
+                : 'bg-slate-900 border-slate-800 text-slate-400'
+            }`}
+            title="128-bit hardware WebAssembly SIMD vector execution"
+          >
+            <Zap className={`w-3.5 h-3.5 ${isWasmSimd ? 'text-indigo-400 fill-indigo-400/20' : 'text-slate-500'}`} />
+            <span>WASM SIMD: {isWasmSimd ? 'Active' : 'Unrolled JS'}</span>
+          </div>
+
+          {/* Model Selector Dropdown & Real Status */}
           <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800">
             {modelStatus === 'loading' ? (
               <>
@@ -52,7 +69,11 @@ export const Header: React.FC<HeaderProps> = ({
               </>
             ) : (
               <>
-                {modelStatus === 'ready' ? (
+                {isFallback ? (
+                  <span title="Running in offline N-gram hash fallback">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  </span>
+                ) : modelStatus === 'ready' ? (
                   <CheckCircle2 className="w-3.5 h-3.5 text-brand-400 shrink-0" />
                 ) : (
                   <Cpu className="w-3.5 h-3.5 text-slate-500 shrink-0" />
@@ -73,6 +94,11 @@ export const Header: React.FC<HeaderProps> = ({
                     multilingual-e5-small (100+ Langs)
                   </option>
                 </select>
+                {isFallback && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800">
+                    Offline Mode
+                  </span>
+                )}
               </>
             )}
           </div>

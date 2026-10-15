@@ -9,8 +9,8 @@ export interface WorkerInMessage {
 }
 
 export type WorkerOutMessage =
-  | { type: 'STATUS'; status: 'loading' | 'ready' | 'error'; message?: string }
-  | { type: 'PROGRESS'; file: string; progress: number }
+  | { type: 'STATUS'; status: 'loading' | 'ready' | 'error'; message?: string; isFallback?: boolean; modelName?: string }
+  | { type: 'PROGRESS'; file: string; progress: number; loaded?: number; total?: number }
   | { type: 'BATCH_PROGRESS'; current: number; total: number }
   | { type: 'BATCH_RESULT'; results: Array<{ id: string; vector: Float32Array }> }
   | { type: 'QUERY_RESULT'; query: string; vector: Float32Array }
@@ -63,10 +63,7 @@ self.onmessage = async (e: MessageEvent<WorkerInMessage>) => {
         env.allowLocalModels = false;
         env.useBrowserCache = true;
 
-        const timeoutPromise = new Promise<null>((_, reject) =>
-          setTimeout(() => reject(new Error('HuggingFace model download timeout - using offline fallback')), 8000)
-        );
-
+        // Allow pipeline to download completely with real progress tracking
         const initPromise = pipeline('feature-extraction', targetModel, {
           quantized: true,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -74,23 +71,33 @@ self.onmessage = async (e: MessageEvent<WorkerInMessage>) => {
             if (prog.status === 'progress') {
               self.postMessage({
                 type: 'PROGRESS',
-                file: prog.file || 'model',
+                file: prog.file || 'model.onnx',
                 progress: Math.round(prog.progress || 0),
+                loaded: prog.loaded,
+                total: prog.total,
               });
             }
           },
         });
 
-        extractor = await Promise.race([initPromise, timeoutPromise]);
+        extractor = await initPromise;
         currentModelName = targetModel;
-        self.postMessage({ type: 'STATUS', status: 'ready', message: `Model ${targetModel} loaded into Web Worker.` });
+        self.postMessage({
+          type: 'STATUS',
+          status: 'ready',
+          isFallback: false,
+          modelName: targetModel,
+          message: `Model ${targetModel} loaded into ONNX WebAssembly runtime.`,
+        });
       } catch (loadErr) {
-        console.warn('Transformers pipeline load fallback activated:', loadErr);
+        console.warn('Transformers pipeline load failed, activating offline fallback:', loadErr);
         currentModelName = `${targetModel} (Offline Fallback)`;
         self.postMessage({
           type: 'STATUS',
           status: 'ready',
-          message: `Running in zero-latency offline embedding mode (${targetModel}).`,
+          isFallback: true,
+          modelName: currentModelName,
+          message: `Network offline or blocked. Running in offline N-gram hash vector mode.`,
         });
       }
       return;

@@ -6,6 +6,7 @@ interface BenchmarkStatsProps {
   hnsw: HNSWIndex;
   lastLatencyMs: number | null;
   totalTokens: number;
+  onSwitchQuantization?: (mode: 'f32' | 'sq8' | 'bq') => void;
 }
 
 interface BenchmarkResult {
@@ -21,10 +22,11 @@ export const BenchmarkStats: React.FC<BenchmarkStatsProps> = ({
   hnsw,
   lastLatencyMs,
   totalTokens,
+  onSwitchQuantization,
 }) => {
   const [isRunning, setIsRunning] = useState(false);
   const [benchResult, setBenchResult] = useState<BenchmarkResult | null>(null);
-  const [quantizationMode, setQuantizationMode] = useState<'f32' | 'sq8' | 'bq'>('f32');
+  const [quantizationMode, setQuantizationMode] = useState<'f32' | 'sq8' | 'bq'>(hnsw.quantization || 'f32');
 
   // Estimate in-memory RAM size across quantization levels
   const vectorDim = 384;
@@ -170,7 +172,10 @@ export const BenchmarkStats: React.FC<BenchmarkStatsProps> = ({
           <div className="flex items-center space-x-1 bg-slate-900 p-1 rounded-lg border border-slate-800">
             <button
               type="button"
-              onClick={() => setQuantizationMode('f32')}
+              onClick={() => {
+                setQuantizationMode('f32');
+                onSwitchQuantization?.('f32');
+              }}
               className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
                 quantizationMode === 'f32'
                   ? 'bg-slate-800 text-brand-300 font-semibold'
@@ -181,7 +186,10 @@ export const BenchmarkStats: React.FC<BenchmarkStatsProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => setQuantizationMode('sq8')}
+              onClick={() => {
+                setQuantizationMode('sq8');
+                onSwitchQuantization?.('sq8');
+              }}
               className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
                 quantizationMode === 'sq8'
                   ? 'bg-slate-800 text-brand-300 font-semibold'
@@ -192,7 +200,10 @@ export const BenchmarkStats: React.FC<BenchmarkStatsProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => setQuantizationMode('bq')}
+              onClick={() => {
+                setQuantizationMode('bq');
+                onSwitchQuantization?.('bq');
+              }}
               className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
                 quantizationMode === 'bq'
                   ? 'bg-slate-800 text-brand-300 font-semibold'

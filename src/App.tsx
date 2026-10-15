@@ -8,7 +8,7 @@ import { VectorClusterCanvas } from './components/VectorClusterCanvas';
 import { ChunkInspectorModal } from './components/ChunkInspectorModal';
 import { BenchmarkStats } from './components/BenchmarkStats';
 import { SnapshotManager } from './components/SnapshotManager';
-import { HNSWIndex } from './engine/hnsw_index';
+import { HNSWIndex, QuantizationMode } from './engine/hnsw_index';
 import { BM25Index } from './engine/bm25';
 import { RecursiveChunker, TextChunk } from './engine/chunker';
 import { CodeChunker } from './engine/code_chunker';
@@ -16,24 +16,33 @@ import { LocalRAGSynthesizer, RAGAnswer } from './engine/rag_synthesizer';
 import { VectorStorage } from './engine/storage';
 import { reciprocalRankFusion, HybridSearchResult } from './engine/hybrid';
 import { WorkerOutMessage, WorkerInMessage } from './workers/embedding.worker';
+import { RAGWorkerInMessage, RAGWorkerOutMessage } from './workers/rag.worker';
+import { isWasmSimdActive } from './engine/similarity';
 import { ShieldCheck, Cpu, Compass } from 'lucide-react';
 
 export const App: React.FC = () => {
   // Engines
-  const hnswRef = useRef<HNSWIndex>(new HNSWIndex({ M: 16, efConstruction: 64, efSearch: 32 }));
+  const hnswRef = useRef<HNSWIndex>(new HNSWIndex({ M: 16, efConstruction: 64, efSearch: 32, quantization: 'f32' }));
   const bm25Ref = useRef<BM25Index>(new BM25Index());
   const storageRef = useRef<VectorStorage>(new VectorStorage());
   const workerRef = useRef<Worker | null>(null);
+  const ragWorkerRef = useRef<Worker | null>(null);
 
   // States
   const [modelStatus, setModelStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [modelName, setModelName] = useState('Xenova/all-MiniLM-L6-v2');
+  const [isFallback, setIsFallback] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState<{ file: string; progress: number } | null>(null);
+
+  // RAG States
+  const [ragAnswer, setRagAnswer] = useState<RAGAnswer | null>(null);
+  const [ragMode, setRagMode] = useState<'in_browser_llm' | 'ollama' | 'extractive'>('in_browser_llm');
+  const [isGeneratingRAG, setIsGeneratingRAG] = useState(false);
+  const [ragGenerationStatus, setRagGenerationStatus] = useState('');
 
   const [chunks, setChunks] = useState<TextChunk[]>([]);
   const [vectors, setVectors] = useState<Array<{ id: string; vector: Float32Array }>>([]);
   const [searchResults, setSearchResults] = useState<HybridSearchResult[]>([]);
-  const [ragAnswer, setRagAnswer] = useState<RAGAnswer | null>(null);
   const [currentQuery, setCurrentQuery] = useState('');
   const [queryVector, setQueryVector] = useState<Float32Array | null>(null);
   const [queryLatencyMs, setQueryLatencyMs] = useState<number | null>(null);
@@ -46,6 +55,7 @@ export const App: React.FC = () => {
   // Pending resolver for Web Worker async request-response handling
   const pendingBatchResolver = useRef<((res: Array<{ id: string; vector: Float32Array }>) => void) | null>(null);
   const pendingQueryResolver = useRef<((vec: Float32Array) => void) | null>(null);
+  const isSimdAvailable = useMemo(() => isWasmSimdActive(), []);
 
   // Map chunk IDs to TextChunk objects
   const chunksMap = useMemo(() => {
@@ -68,18 +78,62 @@ export const App: React.FC = () => {
     return chunks.reduce((acc, c) => acc + c.tokenCountEstimate, 0);
   }, [chunks]);
 
-  // Initialize Web Worker and rehydrate from IndexedDB on startup
+  // Helper to trigger grounded RAG generation via dedicated RAG worker
+  const executeRAG = useCallback(
+    (query: string, topChunks: TextChunk[], mode = ragMode) => {
+      if (topChunks.length === 0 || !query.trim()) {
+        setRagAnswer(null);
+        return;
+      }
+
+      setIsGeneratingRAG(true);
+      setRagGenerationStatus(
+        mode === 'in_browser_llm'
+          ? 'Running in-browser generative ONNX LLM...'
+          : mode === 'ollama'
+          ? 'Querying local Ollama model...'
+          : 'Extracting key sentence evidence...'
+      );
+
+      const worker = ragWorkerRef.current;
+      if (!worker) {
+        // Synchronous fallback
+        const fallback = LocalRAGSynthesizer.synthesize(query, topChunks);
+        setRagAnswer(fallback);
+        setIsGeneratingRAG(false);
+        return;
+      }
+
+      worker.postMessage({
+        type: 'GENERATE',
+        query,
+        contexts: topChunks.map((c, i) => ({
+          index: i + 1,
+          chunkId: c.id,
+          documentName: c.documentName,
+          chunkIndex: c.chunkIndex,
+          text: c.text,
+        })),
+        backend: mode,
+      } as RAGWorkerInMessage);
+    },
+    [ragMode]
+  );
+
+  // Initialize Web Workers and rehydrate from IndexedDB on startup
   useEffect(() => {
-    const worker = new Worker(new URL('./workers/embedding.worker.ts', import.meta.url), {
+    // 1. Embedding Worker
+    const embWorker = new Worker(new URL('./workers/embedding.worker.ts', import.meta.url), {
       type: 'module',
     });
-    workerRef.current = worker;
+    workerRef.current = embWorker;
 
-    worker.onmessage = (e: MessageEvent<WorkerOutMessage>) => {
+    embWorker.onmessage = (e: MessageEvent<WorkerOutMessage>) => {
       const msg = e.data;
 
       if (msg.type === 'STATUS') {
         setModelStatus(msg.status);
+        setIsFallback(Boolean(msg.isFallback));
       } else if (msg.type === 'PROGRESS') {
         setDownloadProgress({ file: msg.file, progress: msg.progress });
       } else if (msg.type === 'BATCH_PROGRESS') {
@@ -109,8 +163,33 @@ export const App: React.FC = () => {
       }
     };
 
-    // Send init to worker
-    worker.postMessage({ type: 'INIT', modelName } as WorkerInMessage);
+    embWorker.postMessage({ type: 'INIT', modelName } as WorkerInMessage);
+
+    // 2. Generative RAG Worker
+    const rWorker = new Worker(new URL('./workers/rag.worker.ts', import.meta.url), {
+      type: 'module',
+    });
+    ragWorkerRef.current = rWorker;
+
+    rWorker.onmessage = (e: MessageEvent<RAGWorkerOutMessage>) => {
+      const msg = e.data;
+      if (msg.type === 'RAG_STATUS') {
+        if (msg.message) setRagGenerationStatus(msg.message);
+      } else if (msg.type === 'RAG_RESULT') {
+        setRagAnswer({
+          summary: msg.summary,
+          bulletPoints: msg.bulletPoints,
+          citations: msg.citations,
+          confidence: msg.confidence,
+          backendUsed: msg.backendUsed,
+          modelTitle: msg.modelTitle,
+        });
+        setIsGeneratingRAG(false);
+      } else if (msg.type === 'RAG_ERROR') {
+        console.warn('RAG worker error:', msg.error);
+        setIsGeneratingRAG(false);
+      }
+    };
 
     // Rehydrate from IndexedDB
     const rehydrate = async () => {
@@ -136,7 +215,8 @@ export const App: React.FC = () => {
     rehydrate();
 
     return () => {
-      worker.terminate();
+      embWorker.terminate();
+      rWorker.terminate();
     };
   }, [modelName]);
 
@@ -165,7 +245,28 @@ export const App: React.FC = () => {
     workerRef.current?.postMessage({ type: 'INIT', modelName: newModel } as WorkerInMessage);
   };
 
-  // Handle adding new document (Supports recursive text/markdown and code-aware syntax chunker)
+  // Real in-memory quantization switching
+  const handleSwitchQuantization = (mode: QuantizationMode) => {
+    const prevHnsw = hnswRef.current;
+    if (prevHnsw.quantization === mode) return;
+
+    const newHnsw = new HNSWIndex({
+      M: prevHnsw.M,
+      M0: prevHnsw.M0,
+      efConstruction: prevHnsw.efConstruction,
+      efSearch: prevHnsw.efSearch,
+      metric: prevHnsw.metric,
+      quantization: mode,
+    });
+
+    for (const v of vectors) {
+      newHnsw.insert(v.id, v.vector);
+    }
+
+    hnswRef.current = newHnsw;
+  };
+
+  // Handle adding new document
   const handleAddDocument = async (filename: string, content: string) => {
     setIsProcessing(true);
     setProcessStatus('Chunking document...');
@@ -173,7 +274,6 @@ export const App: React.FC = () => {
     try {
       let newChunks: TextChunk[];
 
-      // Check if file is code (Python, TypeScript, Rust, Go, etc.)
       if (CodeChunker.isSupportedCodeFile(filename)) {
         setProcessStatus('Applying syntax-aware code chunker...');
         newChunks = CodeChunker.split(content, filename, { maxChunkLines: 40, overlapLines: 8 });
@@ -189,7 +289,6 @@ export const App: React.FC = () => {
       setProcessStatus(`Embedding ${newChunks.length} chunks via ONNX runtime...`);
       setBatchProgress({ current: 0, total: newChunks.length });
 
-      // Request embeddings from worker
       const worker = workerRef.current;
       if (!worker) throw new Error('Web Worker not ready.');
 
@@ -203,7 +302,6 @@ export const App: React.FC = () => {
 
       setProcessStatus('Indexing vectors into HNSW graph...');
 
-      // Insert into HNSW & BM25
       for (const item of embeddingResults) {
         hnswRef.current.insert(item.id, item.vector);
       }
@@ -211,7 +309,6 @@ export const App: React.FC = () => {
         bm25Ref.current.addDocument(c.id, c.text);
       }
 
-      // Persist in IndexedDB
       await storageRef.current.saveChunks(newChunks);
       await storageRef.current.saveVectors(embeddingResults);
       await storageRef.current.saveDocument({
@@ -231,20 +328,18 @@ export const App: React.FC = () => {
     }
   };
 
-  // Execute search query (with document scoping filter and local RAG synthesis)
+  // Execute search query
   const handleSearch = useCallback(
     async (query: string, mode: SearchMode, topK: number, documentFilter?: string | null) => {
       if (chunks.length === 0) return;
       setCurrentQuery(query);
       const t0 = performance.now();
 
-      // Document filter predicate
       const filterFn = documentFilter
         ? (id: string) => chunksMap.get(id)?.documentName === documentFilter
         : undefined;
 
       if (mode === 'sparse') {
-        // Pure BM25
         const bm25Res = bm25Ref.current.search(query, topK, filterFn);
         const hybridResults = bm25Res.map((r) => ({
           id: r.id,
@@ -255,17 +350,14 @@ export const App: React.FC = () => {
         setSearchResults(hybridResults);
         setQueryLatencyMs(t1 - t0);
 
-        // Synthesize grounded RAG answer
         const topChunks = hybridResults
           .slice(0, 4)
           .map((r) => chunksMap.get(r.id))
           .filter(Boolean) as TextChunk[];
-        const rag = LocalRAGSynthesizer.synthesize(query, topChunks);
-        setRagAnswer(rag);
+        executeRAG(query, topChunks);
         return;
       }
 
-      // If dense or hybrid, generate query embedding via worker
       const worker = workerRef.current;
       if (!worker) return;
 
@@ -294,10 +386,8 @@ export const App: React.FC = () => {
           .slice(0, 4)
           .map((r) => chunksMap.get(r.id))
           .filter(Boolean) as TextChunk[];
-        const rag = LocalRAGSynthesizer.synthesize(query, topChunks);
-        setRagAnswer(rag);
+        executeRAG(query, topChunks);
       } else {
-        // Hybrid (Dense + Sparse RRF)
         const denseRes = hnswRef.current.search(qVec, topK * 2, filterFn);
         const sparseRes = bm25Ref.current.search(query, topK * 2, filterFn);
         const fused = reciprocalRankFusion(denseRes, sparseRes, topK);
@@ -309,14 +399,13 @@ export const App: React.FC = () => {
           .slice(0, 4)
           .map((r) => chunksMap.get(r.id))
           .filter(Boolean) as TextChunk[];
-        const rag = LocalRAGSynthesizer.synthesize(query, topChunks);
-        setRagAnswer(rag);
+        executeRAG(query, topChunks);
       }
     },
-    [chunks, chunksMap]
+    [chunks, chunksMap, executeRAG]
   );
 
-  // Handle "Find Similar" (Query-by-Example using chunk's embedding vector)
+  // Handle Find Similar
   const handleFindSimilar = useCallback(
     (chunk: TextChunk) => {
       const vec = hnswRef.current.getVector(chunk.id);
@@ -327,9 +416,7 @@ export const App: React.FC = () => {
       setCurrentQuery(similarQueryTitle);
       setQueryVector(vec);
 
-      // Search nearest vectors
       const rawResults = hnswRef.current.search(vec, 7);
-      // Filter out chunk itself if there are other candidates
       const filtered =
         rawResults.length > 1 ? rawResults.filter((r) => r.id !== chunk.id) : rawResults;
 
@@ -343,16 +430,28 @@ export const App: React.FC = () => {
       setSearchResults(hybridResults);
       setQueryLatencyMs(t1 - t0);
 
-      // Synthesize RAG answer for similar chunks
       const topChunks = hybridResults
         .slice(0, 4)
         .map((r) => chunksMap.get(r.id))
         .filter(Boolean) as TextChunk[];
-      const rag = LocalRAGSynthesizer.synthesize(similarQueryTitle, topChunks);
-      setRagAnswer(rag);
+      executeRAG(similarQueryTitle, topChunks);
     },
-    [chunksMap]
+    [chunksMap, executeRAG]
   );
+
+  // Re-generate RAG answer when switching mode or clicking refresh
+  const handleRegenerateRAG = (newMode?: 'in_browser_llm' | 'ollama' | 'extractive') => {
+    const targetMode = newMode || ragMode;
+    if (newMode) setRagMode(newMode);
+
+    if (searchResults.length > 0 && currentQuery.trim()) {
+      const topChunks = searchResults
+        .slice(0, 4)
+        .map((r) => chunksMap.get(r.id))
+        .filter(Boolean) as TextChunk[];
+      executeRAG(currentQuery, topChunks, targetMode);
+    }
+  };
 
   // Restore snapshot
   const handleImportSnapshot = (restoredHnsw: HNSWIndex, restoredChunks: TextChunk[]) => {
@@ -387,6 +486,8 @@ export const App: React.FC = () => {
       <Header
         modelStatus={modelStatus}
         modelName={modelName}
+        isFallback={isFallback}
+        isWasmSimd={isSimdAvailable}
         vectorCount={vectors.length}
         totalTokens={totalTokens}
         downloadProgress={downloadProgress}
@@ -403,11 +504,11 @@ export const App: React.FC = () => {
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-500"></span>
               </span>
               <span className="text-xs font-mono font-semibold text-brand-400 uppercase tracking-wider">
-                100% Client-Side WebAssembly Pipeline
+                100% Client-Side WebAssembly & Generative RAG
               </span>
             </div>
             <p className="text-sm text-slate-300">
-              Zero cloud latency, zero external API costs, zero data leakage. Embeddings, HNSW graph indexing, syntax code chunking, vector quantization, and hybrid BM25 retrieval run locally in your browser.
+              Zero cloud latency, zero external API costs, zero data leakage. Embeddings, HNSW graph indexing, hardware SIMD math, SQ8/BQ memory quantization, and grounded local LLM synthesis run entirely in your browser.
             </p>
           </div>
 
@@ -418,7 +519,7 @@ export const App: React.FC = () => {
             </span>
             <span className="px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 flex items-center space-x-1.5">
               <Cpu className="w-3.5 h-3.5 text-indigo-400" />
-              <span>SIMD Math</span>
+              <span>128-bit SIMD</span>
             </span>
           </div>
         </div>
@@ -452,8 +553,16 @@ export const App: React.FC = () => {
               availableDocuments={availableDocuments}
             />
 
-            {/* Local RAG Answer Box */}
-            <RAGAnswerBox answer={ragAnswer} query={currentQuery} />
+            {/* Local Grounded Generative RAG Answer Box */}
+            <RAGAnswerBox
+              answer={ragAnswer}
+              query={currentQuery}
+              isGenerating={isGeneratingRAG}
+              generationStatus={ragGenerationStatus}
+              activeMode={ragMode}
+              onChangeMode={(m) => handleRegenerateRAG(m)}
+              onRegenerate={() => handleRegenerateRAG()}
+            />
 
             <SearchResults
               results={searchResults}
@@ -470,11 +579,11 @@ export const App: React.FC = () => {
                 <h3 className="text-sm font-semibold text-slate-400">
                   {vectors.length === 0
                     ? 'No documents loaded in local vector engine'
-                    : 'Enter a search query above to see ranked matches'}
+                    : 'Enter a search query above to see ranked matches & generated answers'}
                 </h3>
                 <p className="text-xs text-slate-500 max-w-md mx-auto">
                   {vectors.length === 0
-                    ? 'Click "Load Systems Architecture" or "Raft Python Code" on the left to test semantic retrieval in seconds.'
+                    ? 'Click "Systems Architecture" or "Raft Python Code" on the left to test semantic retrieval and generative RAG.'
                     : 'Query vectors are generated on the fly via Web Worker and matched against the in-memory HNSW index.'}
                 </p>
               </div>
@@ -496,6 +605,7 @@ export const App: React.FC = () => {
           hnsw={hnswRef.current}
           lastLatencyMs={queryLatencyMs}
           totalTokens={totalTokens}
+          onSwitchQuantization={handleSwitchQuantization}
         />
       </main>
 
@@ -516,7 +626,7 @@ export const App: React.FC = () => {
           <div className="flex items-center space-x-2">
             <span>VectorLite-Wasm</span>
             <span>•</span>
-            <span>Client-Side ONNX WebAssembly & HNSW</span>
+            <span>Client-Side ONNX WebAssembly, Hardware SIMD & Local Generative RAG</span>
           </div>
           <div>MIT License • Built by Alexandr Motologa</div>
         </div>

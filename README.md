@@ -16,12 +16,12 @@
   <img src="https://img.shields.io/badge/WebAssembly-SIMD-blue.svg" alt="WebAssembly SIMD" />
   <img src="https://img.shields.io/badge/Index-HNSW%20+%20BM25-purple.svg" alt="HNSW and BM25" />
   <img src="https://img.shields.io/badge/Quantization-SQ8%20%2B%20BQ-indigo.svg" alt="SQ8 and BQ Quantization" />
-  <img src="https://img.shields.io/badge/Tests-16%20Passed-brightgreen.svg" alt="Vitest Unit Tests" />
+  <img src="https://img.shields.io/badge/Tests-19%20Passed-brightgreen.svg" alt="Vitest Unit Tests" />
 </p>
 
 ---
 
-VectorLite-Wasm is an in-browser vector search engine and semantic document retrieval system. It runs entirely inside the browser through WebAssembly and Web Workers, executing quantized transformer models (ONNX Runtime Web) alongside an in-memory Hierarchical Navigable Small World (HNSW) index, Okapi BM25 lexical search, vector quantization, and local grounded RAG.
+VectorLite-Wasm is an in-browser vector search engine and semantic document retrieval system. It runs entirely inside the browser through WebAssembly and Web Workers, executing quantized transformer models (ONNX Runtime Web) alongside an in-memory Hierarchical Navigable Small World (HNSW) index, hardware-accelerated 128-bit WebAssembly SIMD math, Okapi BM25 lexical search, true runtime vector quantization (SQ8 & 1-bit BQ), and client-side generative grounded RAG.
 
 No document text or vector embeddings are transmitted to external servers.
 
@@ -59,6 +59,8 @@ Document Drop --->|  [Recursive & Syntax-Aware Code Chunker]     |
                   |  +----------------------------------------+  |
                   |  |  In-Memory Hybrid Storage              |  |
                   |  |  - HNSW Index (Dense Cosine Graph)     |  |
+                  |  |  - WebAssembly 128-bit SIMD Kernel     |  |
+                  |  |  - Runtime SQ8 & BQ Quantization       |  |
                   |  |  - BM25 Index (Sparse Inverted Index)  |  |
                   |  |  - Predicate Metadata Filter Engine    |  |
                   |  |  - IndexedDB Persistence Store         |  |
@@ -66,7 +68,7 @@ Document Drop --->|  [Recursive & Syntax-Aware Code Chunker]     |
                   |          |                                   |
 User Query ------>|  [Reciprocal Rank Fusion Engine]             |
                   |          |                                   |
-                  |          +---> [Local RAG Synthesizer]       |
+                  |          +---> [RAG Worker: ONNX LLM / Ollama]|
                   |          |                                   |
                   |          v                                   |
                   |  [Ranked Matches & 3D Orbit Cluster Canvas]  |
@@ -76,15 +78,16 @@ User Query ------>|  [Reciprocal Rank Fusion Engine]             |
 ## Features
 
 - **Zero Network Transmission:** All embedding generation, vector distance calculations, and graph routing occur inside the browser.
-- **Hierarchical Navigable Small World (HNSW):** Logarithmic graph-based approximate nearest neighbor search with configurable `M` (connections per node), `M0`, and `efConstruction`.
+- **Hardware WebAssembly 128-bit SIMD:** Dedicated WebAssembly kernel compiled with 128-bit SIMD vector instructions (`v128`) for dot products and Euclidean distances.
+- **Hierarchical Navigable Small World (HNSW):** Logarithmic graph-based approximate nearest neighbor search with configurable `M`, `M0`, and `efConstruction`.
+- **True In-Memory Vector Quantization:** Real runtime SQ8 (Int8 symmetric scaling for 75% RAM reduction) and 1-bit Binary Quantization (BQ bit-packing for 96.8% RAM reduction via hardware POPCNT).
 - **Hybrid Search with Reciprocal Rank Fusion (RRF):** Blends dense semantic embeddings with sparse BM25 term frequency scores to handle conceptual meaning and exact identifiers equally well.
+- **Client-Side Generative Grounded RAG:** Integrates an in-browser quantized ONNX sequence-to-sequence LLM (`LaMini-Flan-T5-77M`), local Ollama endpoint support, or instant extractive salience ranking with numbered citations `[1]`, `[2]`.
 - **Multi-Model Selector:** Switch between `all-MiniLM-L6-v2` (fast 384-D), `bge-small-en-v1.5` (high-accuracy retrieval), and `multilingual-e5-small` (100+ languages) on the fly.
 - **Metadata & Document Scoping Filter:** Scope searches to specific documents or metadata attributes while preserving HNSW logarithmic routing speed.
 - **Find Similar (Query-by-Example):** Retrieve nearest neighboring chunks using a stored chunk's vector embedding without generating new query embeddings.
-- **Vector Quantization:** Scalar Quantization SQ8 (Int8 symmetric scaling for 75% RAM reduction) and 1-bit Binary Quantization (BQ bit-packing for 96.8% RAM reduction).
 - **Syntax-Aware Code Chunker:** Preserves functions, classes, interfaces, and struct blocks intact for Python, TypeScript, Rust, Go, JavaScript, and JSON.
 - **Direct URL & GitHub Raw Ingestion:** Fetch and index public documents and source code repositories directly via raw HTTPS endpoints.
-- **Local Grounded RAG:** Synthesizes direct natural language answers with bracketed citation markers `[1]`, `[2]` linking back to retrieved evidence chunks.
 - **3D Orbital Cluster Map:** Interactive 3D vector cluster projection on Canvas using fast power-iteration PCA with mouse drag rotation and elevation controls.
 - **Index Snapshot Export (`.vlite`):** Saves the complete graph topology, vector weights, and chunk texts to a portable JSON file for instant re-import without re-embedding.
 - **IndexedDB Persistence:** Automatically preserves chunks and vectors across page reloads.
