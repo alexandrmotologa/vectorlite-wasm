@@ -161,9 +161,11 @@ export const BenchmarkStats: React.FC<BenchmarkStatsProps> = ({
             <span>Search Latency</span>
           </div>
           <span className="text-sm font-bold text-white">
-            {lastLatencyMs !== null ? `${lastLatencyMs.toFixed(2)} ms` : '< 2 ms'}
+            {lastLatencyMs !== null ? `${lastLatencyMs.toFixed(2)} ms` : '—'}
           </span>
-          <span className="text-[10px] text-slate-500 block mt-0.5">Target: &lt; 10ms</span>
+          <span className="text-[10px] text-slate-500 block mt-0.5">
+            {lastLatencyMs !== null ? 'Target: < 10ms' : 'No queries measured yet'}
+          </span>
         </div>
 
         <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
